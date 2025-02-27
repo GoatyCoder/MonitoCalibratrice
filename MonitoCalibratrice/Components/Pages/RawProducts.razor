@@ -1,0 +1,164 @@
+﻿@page "/rawproducts"
+@inject IMediator Mediator
+@inject IMapper Mapper
+@rendermode InteractiveServer
+
+<h3>Gestione Raw Products</h3>
+
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="alert @notificationCssClass" role="alert">
+        @notificationMessage
+    </div>
+}
+
+<EditForm FormName="rawProductForm" Model="@rawProductViewModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Code</label>
+        <InputText class="form-control" @bind-Value="rawProductViewModel.Code" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="rawProductViewModel.Name" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <InputTextArea class="form-control" @bind-Value="rawProductViewModel.Description" />
+    </div>
+    <button type="submit" class="btn btn-primary">
+        @(isEditing ? "Aggiorna" : "Aggiungi")
+    </button>
+    @if (isEditing)
+    {
+        <button type="button" class="btn btn-secondary ms-2" @onclick="CancelEdit">Annulla</button>
+    }
+</EditForm>
+
+<hr />
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var raw in rawProducts)
+        {
+            <tr>
+                <td>@raw.Code</td>
+                <td>@raw.Name</td>
+                <td>@raw.Description</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" @onclick="() => EditRawProduct(raw)">Modifica</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteRawProduct(raw.Id)">Elimina</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    // ViewModel per il binding nei form
+    private RawProductModel rawProductViewModel = new RawProductModel();
+    private List<RawProductDto> rawProducts = new List<RawProductDto>();
+    private bool isEditing = false;
+    private string notificationMessage = string.Empty;
+    private string notificationCssClass = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRawProducts();
+    }
+
+    private async Task LoadRawProducts()
+    {
+        var result = await Mediator.Send(new GetAllRawProductsQuery());
+        if (result.IsSuccess)
+        {
+            rawProducts = result.Value.ToList();
+        }
+        else
+        {
+            ShowNotification("Errore nel caricamento dei RawProducts: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isEditing)
+        {
+            var updateCommand = new UpdateRawProductCommand(
+                rawProductViewModel.Id,
+                rawProductViewModel.Code,
+                rawProductViewModel.Name,
+                rawProductViewModel.Description);
+            var result = await Mediator.Send(updateCommand);
+            if (result.IsSuccess)
+            {
+                ShowNotification("RawProduct aggiornato con successo", "alert-success");
+            }
+            else
+            {
+                ShowNotification("Errore aggiornamento: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+            }
+        }
+        else
+        {
+            var createCommand = new CreateRawProductCommand(
+                rawProductViewModel.Code,
+                rawProductViewModel.Name,
+                rawProductViewModel.Description);
+            var result = await Mediator.Send(createCommand);
+            if (result.IsSuccess)
+            {
+                ShowNotification("RawProduct creato con successo", "alert-success");
+            }
+            else
+            {
+                ShowNotification("Errore creazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+            }
+        }
+        await LoadRawProducts();
+        rawProductViewModel = new RawProductModel();
+        isEditing = false;
+    }
+
+    private void EditRawProduct(RawProductDto dto)
+    {
+        rawProductViewModel = Mapper.Map<RawProductModel>(dto);
+        isEditing = true;
+    }
+
+    private async Task DeleteRawProduct(Guid id)
+    {
+        var result = await Mediator.Send(new DeleteRawProductCommand(id));
+        if (result.IsSuccess)
+        {
+            ShowNotification("RawProduct eliminato", "alert-success");
+        }
+        else
+        {
+            ShowNotification("Errore eliminazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        await LoadRawProducts();
+    }
+
+    private void CancelEdit()
+    {
+        rawProductViewModel = new RawProductModel();
+        isEditing = false;
+    }
+
+    private void ShowNotification(string message, string cssClass)
+    {
+        notificationMessage = message;
+        notificationCssClass = cssClass;
+    }
+}

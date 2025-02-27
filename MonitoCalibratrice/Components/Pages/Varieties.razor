@@ -1,0 +1,184 @@
+﻿@page "/varieties"
+@inject IMediator Mediator
+@inject IMapper Mapper
+@rendermode InteractiveServer
+
+<h3>Gestione Varieties</h3>
+
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="alert @notificationCssClass" role="alert">
+        @notificationMessage
+    </div>
+}
+
+<EditForm Model="@varietyViewModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Code</label>
+        <InputText class="form-control" @bind-Value="varietyViewModel.Code" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="varietyViewModel.Name" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <InputTextArea class="form-control" @bind-Value="varietyViewModel.Description" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Raw Product</label>
+        <InputSelect class="form-control" @bind-Value="varietyViewModel.RawProductId">
+            <option value="">-- Seleziona Raw Product --</option>
+            @foreach (var rp in rawProducts)
+            {
+                <option value="@rp.Id">@rp.Code - @rp.Name</option>
+            }
+        </InputSelect>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        @(isEditing ? "Aggiorna" : "Aggiungi")
+    </button>
+    @if (isEditing)
+    {
+        <button type="button" class="btn btn-secondary ms-2" @onclick="CancelEdit">Annulla</button>
+    }
+</EditForm>
+
+<hr />
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Raw Product</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var variety in varieties)
+        {
+            <tr>
+                <td>@variety.Code</td>
+                <td>@variety.Name</td>
+                <td>@variety.Description</td>
+                <td>@variety.RawProductName</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" @onclick="() => EditVariety(variety)">Modifica</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteVariety(variety.Id)">Elimina</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private VarietyModel varietyViewModel = new VarietyModel();
+    private List<VarietyDto> varieties = new();
+    private List<RawProductDto> rawProducts = new();
+    private bool isEditing = false;
+    private string notificationMessage = string.Empty;
+    private string notificationCssClass = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRawProducts();
+        await LoadVarieties();
+    }
+
+    private async Task LoadRawProducts()
+    {
+        // Utilizza una query (simile a GetAllRawProductsQuery) per caricare la lista dei raw product.
+        var result = await Mediator.Send(new GetAllRawProductsQuery());
+        if (result.IsSuccess)
+        {
+            rawProducts = result.Value.ToList();
+        }
+        else
+        {
+            ShowNotification("Errore nel caricamento dei RawProducts", "alert-danger");
+        }
+    }
+
+    private async Task LoadVarieties()
+    {
+        var result = await Mediator.Send(new GetAllVarietiesQuery());
+        if (result.IsSuccess)
+        {
+            varieties = result.Value.ToList();
+        }
+        else
+        {
+            ShowNotification("Errore nel caricamento delle Varieties", "alert-danger");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isEditing)
+        {
+            var updateCommand = new UpdateVarietyCommand(
+                varietyViewModel.Id,
+                varietyViewModel.Code,
+                varietyViewModel.Name,
+                varietyViewModel.Description,
+                varietyViewModel.RawProductId
+            );
+            var result = await Mediator.Send(updateCommand);
+            if (result.IsSuccess)
+                ShowNotification("Variety aggiornata con successo", "alert-success");
+            else
+                ShowNotification("Errore aggiornamento: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        else
+        {
+            var createCommand = new CreateVarietyCommand(
+                varietyViewModel.Code,
+                varietyViewModel.Name,
+                varietyViewModel.Description,
+                varietyViewModel.RawProductId
+            );
+            var result = await Mediator.Send(createCommand);
+            if (result.IsSuccess)
+                ShowNotification("Variety creata con successo", "alert-success");
+            else
+                ShowNotification("Errore creazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        await LoadVarieties();
+        varietyViewModel = new VarietyModel();
+        isEditing = false;
+    }
+
+    private void EditVariety(VarietyDto dto)
+    {
+        varietyViewModel = Mapper.Map<VarietyModel>(dto);
+        isEditing = true;
+    }
+
+    private async Task DeleteVariety(Guid id)
+    {
+        var result = await Mediator.Send(new DeleteVarietyCommand(id));
+        if (result.IsSuccess)
+            ShowNotification("Variety eliminata", "alert-success");
+        else
+            ShowNotification("Errore eliminazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        await LoadVarieties();
+    }
+
+    private void CancelEdit()
+    {
+        varietyViewModel = new VarietyModel();
+        isEditing = false;
+    }
+
+    private void ShowNotification(string message, string cssClass)
+    {
+        notificationMessage = message;
+        notificationCssClass = cssClass;
+    }
+}

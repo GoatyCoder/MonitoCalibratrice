@@ -1,0 +1,60 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoCalibratrice", "MonitoCalibratrice\MonitoCalibratrice.csproj", "{680FA44A-146A-469A-B71B-E238FB466DE3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoCalibratrice.Domain", "MonitoCalibratrice.Domain\MonitoCalibratrice.Domain.csproj", "{EE335074-E108-43AB-B715-EF7CEA33B276}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoCalibratrice.Infrastructure", "MonitoCalibratrice.Infrastructure\MonitoCalibratrice.Infrastructure.csproj", "{27CF49EC-F1C5-4676-9546-B667F25BDF5B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoCalibratrice.Application", "MonitoCalibratrice.Application\MonitoCalibratrice.Application.csproj", "{DAA40E02-5A44-451B-B6DF-577386203F72}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{6C83A596-D32D-B35F-00DD-F0C99B673980}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3D1D306A-7C48-4D48-9A9F-9D3A776C7045}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoCalibratrice.Tests", "..\MonitoCalibratrice.Test\MonitoCalibratrice.Tests.csproj", "{A030FCC9-9179-458D-AE64-C936EB8FAA76}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{680FA44A-146A-469A-B71B-E238FB466DE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{680FA44A-146A-469A-B71B-E238FB466DE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{680FA44A-146A-469A-B71B-E238FB466DE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{680FA44A-146A-469A-B71B-E238FB466DE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE335074-E108-43AB-B715-EF7CEA33B276}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE335074-E108-43AB-B715-EF7CEA33B276}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE335074-E108-43AB-B715-EF7CEA33B276}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE335074-E108-43AB-B715-EF7CEA33B276}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27CF49EC-F1C5-4676-9546-B667F25BDF5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27CF49EC-F1C5-4676-9546-B667F25BDF5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27CF49EC-F1C5-4676-9546-B667F25BDF5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27CF49EC-F1C5-4676-9546-B667F25BDF5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAA40E02-5A44-451B-B6DF-577386203F72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAA40E02-5A44-451B-B6DF-577386203F72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAA40E02-5A44-451B-B6DF-577386203F72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAA40E02-5A44-451B-B6DF-577386203F72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A030FCC9-9179-458D-AE64-C936EB8FAA76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A030FCC9-9179-458D-AE64-C936EB8FAA76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A030FCC9-9179-458D-AE64-C936EB8FAA76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A030FCC9-9179-458D-AE64-C936EB8FAA76}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{680FA44A-146A-469A-B71B-E238FB466DE3} = {3D1D306A-7C48-4D48-9A9F-9D3A776C7045}
+		{EE335074-E108-43AB-B715-EF7CEA33B276} = {3D1D306A-7C48-4D48-9A9F-9D3A776C7045}
+		{27CF49EC-F1C5-4676-9546-B667F25BDF5B} = {3D1D306A-7C48-4D48-9A9F-9D3A776C7045}
+		{DAA40E02-5A44-451B-B6DF-577386203F72} = {3D1D306A-7C48-4D48-9A9F-9D3A776C7045}
+		{A030FCC9-9179-458D-AE64-C936EB8FAA76} = {6C83A596-D32D-B35F-00DD-F0C99B673980}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6A5CA1A6-7B05-494F-9E11-CD12953A394B}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Features\SecondaryPackaging\**" />
+    <EmbeddedResource Remove="Features\SecondaryPackaging\**" />
+    <None Remove="Features\SecondaryPackaging\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="MediatR" Version="12.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MonitoCalibratrice.Domain\MonitoCalibratrice.Domain.csproj" />
+    <ProjectReference Include="..\MonitoCalibratrice.Infrastructure\MonitoCalibratrice.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
