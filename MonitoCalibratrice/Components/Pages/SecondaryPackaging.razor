@@ -1,0 +1,153 @@
+﻿@page "/secondarypackaging"
+@inject IMediator Mediator
+@inject IMapper Mapper
+@rendermode InteractiveServer
+
+<h3>Gestione Secondary Packaging</h3>
+
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="alert @notificationCssClass" role="alert">
+        @notificationMessage
+    </div>
+}
+
+<EditForm Model="@secondaryPackagingViewModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Code</label>
+        <InputText class="form-control" @bind-Value="secondaryPackagingViewModel.Code" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="secondaryPackagingViewModel.Name" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <InputTextArea class="form-control" @bind-Value="secondaryPackagingViewModel.Description" />
+    </div>
+    <button type="submit" class="btn btn-primary">
+        @(isEditing ? "Aggiorna" : "Aggiungi")
+    </button>
+    @if (isEditing)
+    {
+        <button type="button" class="btn btn-secondary ms-2" @onclick="CancelEdit">Annulla</button>
+    }
+</EditForm>
+
+<hr />
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var sp in secondaryPackagings)
+        {
+            <tr>
+                <td>@sp.Code</td>
+                <td>@sp.Name</td>
+                <td>@sp.Description</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" @onclick="() => EditSecondaryPackaging(sp)">Modifica</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteSecondaryPackaging(sp.Id)">Elimina</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private SecondaryPackagingModel secondaryPackagingViewModel = new SecondaryPackagingModel();
+    private List<SecondaryPackagingDto> secondaryPackagings = new List<SecondaryPackagingDto>();
+    private bool isEditing = false;
+    private string notificationMessage = string.Empty;
+    private string notificationCssClass = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSecondaryPackagings();
+    }
+
+    private async Task LoadSecondaryPackagings()
+    {
+        var result = await Mediator.Send(new GetAllSecondaryPackagingsQuery());
+        if (result.IsSuccess)
+        {
+            secondaryPackagings = result.Value.ToList();
+        }
+        else
+        {
+            ShowNotification("Errore nel caricamento dei Secondary Packaging", "alert-danger");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isEditing)
+        {
+            var updateCommand = new UpdateSecondaryPackagingCommand(
+                secondaryPackagingViewModel.Id,
+                secondaryPackagingViewModel.Code,
+                secondaryPackagingViewModel.Name,
+                secondaryPackagingViewModel.Description
+            );
+            var result = await Mediator.Send(updateCommand);
+            if (result.IsSuccess)
+                ShowNotification("Secondary Packaging aggiornato con successo", "alert-success");
+            else
+                ShowNotification("Errore aggiornamento: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        else
+        {
+            var createCommand = new CreateSecondaryPackagingCommand(
+                secondaryPackagingViewModel.Code,
+                secondaryPackagingViewModel.Name,
+                secondaryPackagingViewModel.Description
+            );
+            var result = await Mediator.Send(createCommand);
+            if (result.IsSuccess)
+                ShowNotification("Secondary Packaging creato con successo", "alert-success");
+            else
+                ShowNotification("Errore creazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        await LoadSecondaryPackagings();
+        secondaryPackagingViewModel = new SecondaryPackagingModel();
+        isEditing = false;
+    }
+
+    private void EditSecondaryPackaging(SecondaryPackagingDto dto)
+    {
+        secondaryPackagingViewModel = Mapper.Map<SecondaryPackagingModel>(dto);
+        isEditing = true;
+    }
+
+    private async Task DeleteSecondaryPackaging(Guid id)
+    {
+        var result = await Mediator.Send(new DeleteSecondaryPackagingCommand(id));
+        if (result.IsSuccess)
+            ShowNotification("Secondary Packaging eliminato", "alert-success");
+        else
+            ShowNotification("Errore eliminazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        await LoadSecondaryPackagings();
+    }
+
+    private void CancelEdit()
+    {
+        secondaryPackagingViewModel = new SecondaryPackagingModel();
+        isEditing = false;
+    }
+
+    private void ShowNotification(string message, string cssClass)
+    {
+        notificationMessage = message;
+        notificationCssClass = cssClass;
+    }
+}

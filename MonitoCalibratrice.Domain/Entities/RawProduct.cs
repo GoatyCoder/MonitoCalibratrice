@@ -2,9 +2,6 @@
 
 namespace MonitoCalibratrice.Domain.Entities
 {
-    /// <summary>
-    /// Rappresenta un prodotto agricolo da trasformare (es. mandarini, albicocche, pesche, etc.)
-    /// </summary>
     public class RawProduct : IHasCode
     {
         public Guid Id { get; set; }

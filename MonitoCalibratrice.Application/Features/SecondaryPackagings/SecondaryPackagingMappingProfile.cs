@@ -11,7 +11,8 @@ namespace MonitoCalibratrice.Application.Features.SecondaryPackagings
         {
             CreateMap<SecondaryPackaging, SecondaryPackagingDto>();
             CreateMap<CreateSecondaryPackagingCommand, SecondaryPackaging>();
-            CreateMap<UpdateSecondaryPackagingCommand, SecondaryPackaging>();
+            CreateMap<UpdateSecondaryPackagingCommand, SecondaryPackaging>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }

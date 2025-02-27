@@ -2,9 +2,6 @@
 
 namespace MonitoCalibratrice.Domain.Entities
 {
-    /// <summary>
-    /// Rappresenta la varietà di un prodotto (es. “Nadorcot” o “Orri” per i mandarini).
-    /// </summary>
     public class Variety : IHasCode
     {
         public Guid Id { get; set; }

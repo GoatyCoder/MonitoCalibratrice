@@ -8,14 +8,14 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries
 {
-    public record GetSecondaryPackagingsQuery() : IRequest<Result<IEnumerable<SecondaryPackagingDto>>>;
+    public record GetAllSecondaryPackagingsQuery() : IRequest<Result<IEnumerable<SecondaryPackagingDto>>>;
 
-    public class GetSecondaryPackagingsQueryHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<GetSecondaryPackagingsQuery, Result<IEnumerable<SecondaryPackagingDto>>>
+    public class GetAllSecondaryPackagingsQueryHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<GetAllSecondaryPackagingsQuery, Result<IEnumerable<SecondaryPackagingDto>>>
     {
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory = contextFactory;
         private readonly IMapper _mapper = mapper;
 
-        public async Task<Result<IEnumerable<SecondaryPackagingDto>>> Handle(GetSecondaryPackagingsQuery request, CancellationToken cancellationToken)
+        public async Task<Result<IEnumerable<SecondaryPackagingDto>>> Handle(GetAllSecondaryPackagingsQuery request, CancellationToken cancellationToken)
         {
             using var context = _contextFactory.CreateDbContext();
 

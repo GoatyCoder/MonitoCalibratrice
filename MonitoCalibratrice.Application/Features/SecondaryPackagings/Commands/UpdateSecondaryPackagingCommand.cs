@@ -7,8 +7,12 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Commands
 {
-    public record UpdateSecondaryPackagingCommand(Guid Id, string Code, string Name, string Description)
-        : IRequest<Result<SecondaryPackagingDto>>;
+    public record UpdateSecondaryPackagingCommand(
+        Guid Id,
+        string Code,
+        string Name,
+        string Description
+        ) : IRequest<Result<SecondaryPackagingDto>>;
 
     public class UpdateSecondaryPackagingCommandHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<UpdateSecondaryPackagingCommand, Result<SecondaryPackagingDto>>
     {
@@ -21,12 +25,18 @@ namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Commands
 
             var entity = await context.SecondaryPackagings.FindAsync(new object[] { request.Id }, cancellationToken);
             if (entity == null)
-                //return Result<SecondaryPackagingDto>.Failure("SecondaryPackaging not found.");
+            {
+                return Result<SecondaryPackagingDto>.Failure(
+                    new AppError(ErrorCode.NotFound, "SecondaryPackaging not found.", $"Id: {request.Id}")
+                );
+            }
 
             if (!string.Equals(entity.Code, request.Code, StringComparison.OrdinalIgnoreCase) &&
                 await context.SecondaryPackagings.AnyAsync(sp => sp.Code == request.Code, cancellationToken))
             {
-                //return Result<SecondaryPackagingDto>.Failure("SecondaryPackaging Code must be unique.");
+                return Result<SecondaryPackagingDto>.Failure(
+                    new AppError(ErrorCode.DuplicateCode, $"SecondaryPackaging with code '{request.Code}' already exists.", $"Code: {request.Code}")
+                );
             }
 
             _mapper.Map(request, entity);

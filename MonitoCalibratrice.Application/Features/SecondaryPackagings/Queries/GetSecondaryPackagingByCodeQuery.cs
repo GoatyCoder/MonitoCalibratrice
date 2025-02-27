@@ -8,8 +8,7 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries
 {
-    public record GetSecondaryPackagingByCodeQuery(string Code)
-        : IRequest<Result<SecondaryPackagingDto>>;
+    public record GetSecondaryPackagingByCodeQuery(string Code) : IRequest<Result<SecondaryPackagingDto>>;
 
     public class GetSecondaryPackagingByCodeQueryHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<GetSecondaryPackagingByCodeQuery, Result<SecondaryPackagingDto>>
     {
@@ -28,9 +27,10 @@ namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries
 
             if (dto == null)
             {
-
+                return Result<SecondaryPackagingDto>.Failure(
+                    new AppError(ErrorCode.NotFound, "SecondaryPackaging not found.", $"Code: {request.Code}")
+                );
             }
-                //return Result<SecondaryPackagingDto>.Failure("SecondaryPackaging not found.");
 
             return Result<SecondaryPackagingDto>.Success(dto);
         }

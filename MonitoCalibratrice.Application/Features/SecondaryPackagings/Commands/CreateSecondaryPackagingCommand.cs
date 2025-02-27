@@ -8,8 +8,11 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Commands
 {
-    public record CreateSecondaryPackagingCommand(string Code, string Name, string Description)
-        : IRequest<Result<SecondaryPackagingDto>>;
+    public record CreateSecondaryPackagingCommand(
+        string Code,
+        string Name,
+        string Description
+    ) : IRequest<Result<SecondaryPackagingDto>>;
 
     public class CreateSecondaryPackagingCommandHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<CreateSecondaryPackagingCommand, Result<SecondaryPackagingDto>>
     {
@@ -22,9 +25,10 @@ namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Commands
 
             if (await context.SecondaryPackagings.AnyAsync(sp => sp.Code == request.Code, cancellationToken))
             {
-                
+                return Result<SecondaryPackagingDto>.Failure(
+                    new AppError(ErrorCode.DuplicateCode, $"SecondaryPackaging with code '{request.Code}' already exists.", $"Code: {request.Code}")
+                );
             }
-                //return Result<SecondaryPackagingDto>.Failure("SecondaryPackaging Code must be unique.");
 
             var entity = _mapper.Map<SecondaryPackaging>(request);
 

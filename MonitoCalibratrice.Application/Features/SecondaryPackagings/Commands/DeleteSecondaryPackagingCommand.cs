@@ -5,8 +5,7 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Commands
 {
-    public record DeleteSecondaryPackagingCommand(Guid Id)
-        : IRequest<Result>;
+    public record DeleteSecondaryPackagingCommand(Guid Id) : IRequest<Result>;
 
     public class DeleteSecondaryPackagingCommandHandler(IDbContextFactory<ApplicationDbContext> contextFactory) : IRequestHandler<DeleteSecondaryPackagingCommand, Result>
     {
@@ -19,9 +18,10 @@ namespace MonitoCalibratrice.Application.Features.SecondaryPackagings.Commands
             var entity = await context.SecondaryPackagings.FindAsync(new object[] { request.Id }, cancellationToken);
             if (entity == null)
             {
-                
+                return Result.Failure(
+                    new AppError(ErrorCode.NotFound, "SecondaryPackaging not found.", $"Id: {request.Id}")
+                );
             }
-                //return Result.Failure("SecondaryPackaging not found.");
 
             context.SecondaryPackagings.Remove(entity);
             await context.SaveChangesAsync(cancellationToken);
