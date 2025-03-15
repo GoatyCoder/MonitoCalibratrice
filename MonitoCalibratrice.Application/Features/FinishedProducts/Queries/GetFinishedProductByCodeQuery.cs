@@ -8,8 +8,7 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.FinishedProducts.Queries
 {
-    public record GetFinishedProductByCodeQuery(string Code)
-        : IRequest<Result<FinishedProductDto>>;
+    public record GetFinishedProductByCodeQuery(string Code) : IRequest<Result<FinishedProductDto>>;
 
     public class GetFinishedProductByCodeQueryHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<GetFinishedProductByCodeQuery, Result<FinishedProductDto>>
     {

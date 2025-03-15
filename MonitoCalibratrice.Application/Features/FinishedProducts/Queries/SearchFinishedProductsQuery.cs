@@ -8,19 +8,28 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.FinishedProducts.Queries
 {
-    public record GetFinishedProductsQuery() : IRequest<Result<IEnumerable<FinishedProductDto>>>;
+    public record SearchFinishedProductsQuery(string Filter) : IRequest<Result<IEnumerable<FinishedProductDto>>>;
 
-    public class GetFinishedProductsQueryHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<GetFinishedProductsQuery, Result<IEnumerable<FinishedProductDto>>>
+    public class SearchFinishedProductsQueryHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper
+    ) : IRequestHandler<SearchFinishedProductsQuery, Result<IEnumerable<FinishedProductDto>>>
     {
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory = contextFactory;
         private readonly IMapper _mapper = mapper;
 
-        public async Task<Result<IEnumerable<FinishedProductDto>>> Handle(GetFinishedProductsQuery request, CancellationToken cancellationToken)
+        public async Task<Result<IEnumerable<FinishedProductDto>>> Handle(
+            SearchFinishedProductsQuery request,
+            CancellationToken cancellationToken)
         {
             using var context = _contextFactory.CreateDbContext();
 
-            var dtos = await context.FinishedProducts
+            var filter = request.Filter?.Trim().ToLower() ?? string.Empty;
+
+            var query = context.FinishedProducts
                 .AsNoTracking()
+                .Where(fp => fp.Code.ToLower().Contains(filter)
+                          || fp.Name.ToLower().Contains(filter));
+
+            var dtos = await query
                 .ProjectTo<FinishedProductDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
 

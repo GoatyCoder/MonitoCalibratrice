@@ -1,0 +1,46 @@
+﻿@page "/test"
+@rendermode InteractiveServer
+
+<h1>Status: @Status</h1>
+<EditForm FormName="PalletFrm" Model="@palletModel">
+    <input type="text" @bind="palletModel.Name" @onkeydown="@(e => OnFieldKeyDown(e, descriptionInput))" @ref="nameInput" />
+    <input type="text" @bind="palletModel.Description" @onkeydown="@(e => OnFieldKeyDown(e, nameInput))" @ref="descriptionInput" />
+    <input type="button" onclick="@FormSubmitted" value="Submit" class="btn btn-primary" />
+</EditForm>
+
+@code {
+    private string Status = string.Empty;
+    private Pallet palletModel = new Pallet();
+
+    private ElementReference nameInput;
+    private ElementReference descriptionInput;
+
+    void FormSubmitted()
+    {
+        Status = palletModel.Name + " " + palletModel.Description;
+        StateHasChanged();
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
+
+    private async Task OnFieldKeyDown(KeyboardEventArgs e, ElementReference nextField)
+    {
+        if (e.CtrlKey && e.Key == "Enter")
+        {
+            FormSubmitted();
+        }
+        else if (e.Key == "Enter")
+        {
+            await nextField.FocusAsync();
+        }
+    }
+
+    public class Pallet
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+    }
+}

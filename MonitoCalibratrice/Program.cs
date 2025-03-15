@@ -87,15 +87,22 @@ async Task SeedDataAsync(ApplicationDbContext context)
         Name = "CP6416"
     };
 
+    var productionLine = new ProductionLine
+    {
+        Id = Guid.NewGuid(),
+        Name = "Linea 1"
+    };
+
     var production = new ProductionBatch
     {
         Id = Guid.NewGuid(),
+        ProductionLineId = productionLine.Id,
         Caliber = "3-4",
         RawProductId = rawProduct.Id,
         VarietyId = variety.Id,
         FinishedProductId = finishedProduct.Id,
         SecondaryPackagingId = secondaryPackaging.Id,
-        StartTime = DateTime.Now
+        StartedAt = DateTime.Now
     };
 
     // Aggiungi le entità al contesto
@@ -103,7 +110,10 @@ async Task SeedDataAsync(ApplicationDbContext context)
     context.Varieties.Add(variety);
     context.FinishedProducts.Add(finishedProduct);
     context.SecondaryPackagings.Add(secondaryPackaging);
+    context.ProductionLines.Add(productionLine);
     context.ProductionBatches.Add(production);
+
+    Console.WriteLine(production.Id + " " + production.StartedAt);
 
     await context.SaveChangesAsync();
 }

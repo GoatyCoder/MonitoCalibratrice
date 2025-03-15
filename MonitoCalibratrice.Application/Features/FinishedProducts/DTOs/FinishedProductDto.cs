@@ -5,7 +5,7 @@
         Guid Id,
         string Code,
         string Name,
-        string Description,
+        string? Description,
         string? Ean
     );
 }

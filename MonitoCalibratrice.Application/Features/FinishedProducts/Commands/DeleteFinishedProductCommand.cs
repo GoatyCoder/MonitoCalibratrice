@@ -18,7 +18,11 @@ namespace MonitoCalibratrice.Application.Features.FinishedProducts.Commands
 
             var entity = await context.FinishedProducts.FindAsync(new object[] { request.Id }, cancellationToken);
             if (entity == null)
-                //return Result.Failure("FinishedProduct not found.");
+            {
+                return Result.Failure(
+                    new AppError(ErrorCode.NotFound, "FinishedProduct not found.", $"Id: {request.Id}")
+                );
+            }
 
             context.FinishedProducts.Remove(entity);
             await context.SaveChangesAsync(cancellationToken);

@@ -20,6 +20,7 @@ namespace MonitoCalibratrice.Application.Features.ProductionBatches.Queries
             using var context = _contextFactory.CreateDbContext();
 
             var dto = await context.ProductionBatches
+                .Include(pb => pb.Pallets)
                 .AsNoTracking()
                 .Where(pb => pb.Id == request.Id)
                 .ProjectTo<ProductionBatchDto>(_mapper.ConfigurationProvider)
@@ -31,7 +32,6 @@ namespace MonitoCalibratrice.Application.Features.ProductionBatches.Queries
                     new AppError(ErrorCode.NotFound, "ProductionBatch not found.", $"Id: {request.Id}")
                 );
             }
-                //return Result<ProductionBatchDto>.Failure("ProductionBatch not found.");
 
             return Result<ProductionBatchDto>.Success(dto);
         }

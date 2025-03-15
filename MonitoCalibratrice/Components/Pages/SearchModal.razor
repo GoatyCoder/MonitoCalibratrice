@@ -1,0 +1,92 @@
+﻿@typeparam TItem
+
+<div class="modal" style="display:@(Show ? "block" : "none"); background-color: rgba(0,0,0,0.4)">
+    <div class="modal-dialog modal-dialog-scrollable" style="margin-top: 5rem;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@Title</h5>
+                <button type="button" class="btn-close" @onclick="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input class="form-control mb-2"
+                       placeholder="Digita il filtro..."
+                       @bind="searchText" @bind:event="oninput"
+                       @onkeydown="@(e => OnKeyDownSearch(e))" />
+                <button class="btn btn-secondary mb-2" @onclick="() => PerformSearch.InvokeAsync(searchText)">
+                    Cerca
+                </button>
+
+                @if (Items != null && Items.Any())
+                {
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Codice</th>
+                                <th>Nome</th>
+                                <th>Seleziona</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Items)
+                            {
+                                <tr>
+                                    <td>@GetPropertyValue(item, "Code")</td>
+                                    <td>@GetPropertyValue(item, "Name")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary"
+                                                @onclick="() => Select(item)">
+                                            Seleziona
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p>Nessun risultato.</p>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" @onclick="Close">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string Title { get; set; } = "Ricerca";
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+    [Parameter] public EventCallback<TItem> OnSelectItem { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> PerformSearch { get; set; }
+
+    private string searchText = string.Empty;
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task Select(TItem item)
+    {
+        await OnSelectItem.InvokeAsync(item);
+    }
+
+    private async Task OnKeyDownSearch(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await PerformSearch.InvokeAsync(searchText);
+        }
+    }
+
+    // Metodo helper per leggere proprietà generiche (Code, Name) se TItem è un DTO generico
+    private object? GetPropertyValue(TItem item, string propName)
+    {
+        var prop = typeof(TItem).GetProperty(propName);
+        return prop?.GetValue(item);
+    }
+}

@@ -9,10 +9,17 @@ namespace MonitoCalibratrice.Application.Features.ProductionBatches
     {
         public ProductionBatchMappingProfile()
         {
-            CreateMap<ProductionBatch, ProductionBatchDto>();
+            CreateMap<ProductionBatch, ProductionBatchDto>()
+                .ForMember(dest => dest.ProductionLineName, opt => opt.MapFrom(src => src.ProductionLine.Name))
+                .ForMember(dest => dest.RawProductName, opt => opt.MapFrom(src => src.RawProduct.Name))
+                .ForMember(dest => dest.VarietyName, opt => opt.MapFrom(src => src.Variety.Name))
+                .ForMember(dest => dest.FinishedProductName, opt => opt.MapFrom(src => src.FinishedProduct.Name))
+                .ForMember(dest => dest.SecondaryPackagingName, opt => opt.MapFrom(src => src.SecondaryPackaging.Name))
+                .ForMember(dest => dest.TotalUnits, opt => opt.MapFrom(src => src.Pallets.Sum(p => p.Units)));
+            ;
 
             CreateMap<CreateProductionBatchCommand, ProductionBatch>()
-                .ForMember(dest => dest.EndTime, opt => opt.MapFrom(_ => (DateTime?)null));
+                .ForMember(dest => dest.FinishedAt, opt => opt.MapFrom(_ => (DateTime?)null));
 
             CreateMap<UpdateProductionBatchCommand, ProductionBatch>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore()); ;

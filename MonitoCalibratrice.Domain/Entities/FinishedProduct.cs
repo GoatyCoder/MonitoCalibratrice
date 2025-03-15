@@ -8,9 +8,9 @@ namespace MonitoCalibratrice.Domain.Entities
     public class FinishedProduct : IHasCode
     {
         public Guid Id { get; set; }
-        public string Code { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; } = string.Empty;
+        public required string Code { get; set; }
+        public required string Name { get; set; }
+        public string? Description { get; set; }
         public string? Ean { get; set; }
     }
 }

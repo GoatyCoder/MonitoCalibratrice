@@ -12,6 +12,7 @@ namespace MonitoCalibratrice.Infrastructure
         public DbSet<FinishedProduct> FinishedProducts => Set<FinishedProduct>();
         public DbSet<ProductionBatch> ProductionBatches => Set<ProductionBatch>();
         public DbSet<FinishedProductPallet> FinishedProductPallets => Set<FinishedProductPallet>();
+        public DbSet<ProductionLine> ProductionLines => Set<ProductionLine>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

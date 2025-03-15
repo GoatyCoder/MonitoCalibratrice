@@ -9,11 +9,13 @@ using MonitoCalibratrice.Infrastructure;
 namespace MonitoCalibratrice.Application.Features.ProductionBatches.Commands
 {
     public record CreateProductionBatchCommand(
+        Guid ProductionLineId,
         Guid RawProductId,
         Guid VarietyId,
         string? Caliber,
         Guid FinishedProductId,
-        Guid SecondaryPackagingId
+        Guid SecondaryPackagingId,
+        DateTime StartedTime
     ) : IRequest<Result<ProductionBatchDto>>;
 
     public class CreateProductionBatchCommandHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<CreateProductionBatchCommand, Result<ProductionBatchDto>>

@@ -1,4 +1,6 @@
-﻿namespace MonitoCalibratrice.Application.Features.FinishedProductPallets.DTOs
+﻿using MonitoCalibratrice.Domain.Entities;
+
+namespace MonitoCalibratrice.Application.Features.FinishedProductPallets.DTOs
 {
     public record FinishedProductPalletDto(
         Guid Id,
@@ -11,6 +13,7 @@
         int Units,
         decimal Weight,
         string Annotation,
-        DateTime CreatedAt
+        DateTime CreatedAt,
+        Guid? ProductionBatchId
     );
 }

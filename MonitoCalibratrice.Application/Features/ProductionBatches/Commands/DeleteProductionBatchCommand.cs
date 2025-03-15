@@ -18,9 +18,8 @@ namespace MonitoCalibratrice.Application.Features.ProductionBatches.Commands
             var entity = await context.ProductionBatches.FindAsync(new object[] { request.Id }, cancellationToken);
             if (entity == null)
             {
-
+                return Result.Failure(new AppError(ErrorCode.NotFound, "ProductionBatch not found.", $"Id: {request.Id}"));
             }
-                //return Result.Failure("ProductionBatch not found.");
 
             context.ProductionBatches.Remove(entity);
             await context.SaveChangesAsync(cancellationToken);

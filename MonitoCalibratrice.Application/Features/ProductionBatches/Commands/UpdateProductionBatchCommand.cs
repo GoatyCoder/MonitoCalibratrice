@@ -9,13 +9,14 @@ namespace MonitoCalibratrice.Application.Features.ProductionBatches.Commands
 {
     public record UpdateProductionBatchCommand(
         Guid Id,
+        Guid ProductionLineId,
         Guid RawProductId,
         Guid VarietyId,
         string? Caliber,
         Guid FinishedProductId,
         Guid SecondaryPackagingId,
-        DateTime StartTime,
-        DateTime? EndTime
+        DateTime StartedAt,
+        DateTime? FinishedAt
     ) : IRequest<Result<ProductionBatchDto>>;
 
     public class UpdateProductionBatchCommandHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<UpdateProductionBatchCommand, Result<ProductionBatchDto>>
@@ -30,9 +31,8 @@ namespace MonitoCalibratrice.Application.Features.ProductionBatches.Commands
             var entity = await context.RawProducts.FindAsync(new object[] { request.Id }, cancellationToken);
             if (entity == null)
             {
-
+                return Result<ProductionBatchDto>.Failure(new AppError(ErrorCode.NotFound, "ProductionBatch not found.", $"Id: {request.Id}"));
             }
-                //return Result<ProductionBatchDto>.Failure("ProductionBatch not found.");
 
             _mapper.Map(request, entity);
             await context.SaveChangesAsync(cancellationToken);

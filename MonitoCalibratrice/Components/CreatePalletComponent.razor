@@ -1,0 +1,143 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.Commands
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.DTOs
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@typeparam TBatch
+
+<h4>Aggiungi Pedana per la Lavorazione: @ProductionBatch?.FinishedProductName</h4>
+
+@if (ProductionBatch == null)
+{
+    <p>Caricamento dati lavorazione...</p>
+}
+else
+{
+    <EditForm Model="@palletModel" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <!-- Il form può essere precompilato con alcuni dati dalla lavorazione -->
+        <div class="mb-3">
+            <label class="form-label">Data e Ora di Creazione</label>
+            <input type="datetime-local" class="form-control" @bind="palletModel.CreatedAt" />
+        </div>
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Cod. Prodotto Grezzo</label>
+                <input type="text" class="form-control" @bind="palletModel.RawProductCode" disabled />
+            </div>
+            <div class="col-6">
+                <label class="form-label">Cod. Varietà</label>
+                <input type="text" class="form-control" @bind="palletModel.VarietyCode" disabled />
+            </div>
+        </div>
+        <!-- Gli altri campi possono essere editabili se necessario -->
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Calibro</label>
+                <input type="text" class="form-control" @bind="palletModel.Caliber" />
+            </div>
+            <div class="col-6">
+                <label class="form-label">Cod. Prodotto Finito</label>
+                <input type="text" class="form-control" @bind="palletModel.FinishedProductCode" disabled />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Cod. Packaging Secondario</label>
+                <input type="text" class="form-control" @bind="palletModel.SecondaryPackagingCode" disabled />
+            </div>
+            <div class="col-6">
+                <label class="form-label">Numero di Unità</label>
+                <InputNumber class="form-control" @bind-Value="palletModel.Units" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Peso (kg)</label>
+            <InputNumber class="form-control" @bind-Value="palletModel.Weight" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Annotazioni</label>
+            <InputTextArea class="form-control" @bind-Value="palletModel.Annotation"></InputTextArea>
+        </div>
+        <button type="submit" class="btn btn-primary">Crea Pedana</button>
+    </EditForm>
+}
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert alert-info mt-3">@message</div>
+}
+
+@code {
+    // Parametro per passare la lavorazione selezionata (ProductionBatchDto)
+    [Parameter]
+    public ProductionBatchDto? ProductionBatch { get; set; }
+
+    // Modello per la creazione della pedana
+    private PalletCreationModel palletModel = new PalletCreationModel();
+
+    private string message = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (ProductionBatch != null)
+        {
+            // Precompila il form con alcuni dati dalla lavorazione
+            palletModel.CreatedAt = DateTime.Now;
+            palletModel.RawProductCode = ProductionBatch.RawProductName;  // o codice se disponibile
+            palletModel.VarietyCode = ProductionBatch.VarietyName;          // o codice se disponibile
+            palletModel.Caliber = ProductionBatch.Caliber ?? string.Empty;
+            palletModel.FinishedProductCode = ProductionBatch.FinishedProductName; // o codice
+            palletModel.SecondaryPackagingCode = ProductionBatch.SecondaryPackagingName; // o codice
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var command = new CreateFinishedProductPalletCommand(
+                ProductionBatch != null ? ProductionBatch.RawProductId : Guid.Empty,
+                ProductionBatch != null ? ProductionBatch.VarietyId : Guid.Empty,
+                palletModel.Caliber,
+                ProductionBatch != null ? ProductionBatch.FinishedProductId : Guid.Empty,
+                ProductionBatch != null ? ProductionBatch.SecondaryPackagingId : Guid.Empty,
+                palletModel.Units,
+                palletModel.Weight,
+                palletModel.Annotation,
+                palletModel.CreatedAt
+            );
+
+            var result = await Mediator.Send(command);
+            if (result.IsSuccess)
+            {
+                message = $"Pedana '{result.Value.PalletCode}' creata con successo.";
+            }
+            else
+            {
+                message = $"Errore: {string.Join(", ", result.Errors.Select(e => e.Message))}";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Errore durante la creazione della pedana: {ex.Message}";
+        }
+    }
+
+    public class PalletCreationModel
+    {
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public string RawProductCode { get; set; } = string.Empty;
+        public string VarietyCode { get; set; } = string.Empty;
+        public string Caliber { get; set; } = string.Empty;
+        public string FinishedProductCode { get; set; } = string.Empty;
+        public string SecondaryPackagingCode { get; set; } = string.Empty;
+        public int Units { get; set; } = 1;
+        public decimal Weight { get; set; }
+        public string Annotation { get; set; } = string.Empty;
+    }
+}

@@ -11,7 +11,8 @@ namespace MonitoCalibratrice.Application.Features.FinishedProducts
         {
             CreateMap<FinishedProduct, FinishedProductDto>();
             CreateMap<CreateFinishedProductCommand, FinishedProduct>();
-            CreateMap<UpdateFinishedProductCommand, FinishedProduct>();
+            CreateMap<UpdateFinishedProductCommand, FinishedProduct>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }

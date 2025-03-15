@@ -11,7 +11,7 @@ namespace MonitoCalibratrice.Application.Features.FinishedProducts.Commands
         Guid Id,
         string Code,
         string Name,
-        string Description,
+        string? Description,
         string? Ean
     ) : IRequest<Result<FinishedProductDto>>;
 
@@ -26,12 +26,18 @@ namespace MonitoCalibratrice.Application.Features.FinishedProducts.Commands
 
             var entity = await context.FinishedProducts.FindAsync(new object[] { request.Id }, cancellationToken);
             if (entity == null)
-                //return Result<FinishedProductDto>.Failure("FinishedProduct not found.");
+            {
+                return Result<FinishedProductDto>.Failure(
+                    new AppError(ErrorCode.NotFound, "FinishedProduct not found.", $"Id: {request.Id}")
+                );
+            }
 
             if (!string.Equals(entity.Code, request.Code, StringComparison.OrdinalIgnoreCase) &&
                 await context.FinishedProducts.AnyAsync(fp => fp.Code == request.Code, cancellationToken))
             {
-                //return Result<FinishedProductDto>.Failure("FinishedProduct Code must be unique.");
+                return Result<FinishedProductDto>.Failure(
+                    new AppError(ErrorCode.DuplicateCode, $"FinishedProduct with code '{request.Code}' already exists.", $"Code: {request.Code}")
+                );
             }
 
             _mapper.Map(request, entity);

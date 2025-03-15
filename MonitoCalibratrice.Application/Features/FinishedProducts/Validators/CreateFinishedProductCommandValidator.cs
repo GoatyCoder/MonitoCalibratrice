@@ -13,7 +13,7 @@ namespace MonitoCalibratrice.Application.Features.FinishedProducts.Validators
 
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required.")
-                .MaximumLength(60).WithMessage("Name must not exceed 30 characters.");
+                .MaximumLength(60).WithMessage("Name must not exceed 60 characters.");
 
             RuleFor(x => x.Description)
                 .MaximumLength(200).WithMessage("Description must not exceed 200 characters.");

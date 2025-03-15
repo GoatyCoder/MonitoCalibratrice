@@ -9,14 +9,16 @@ using MonitoCalibratrice.Infrastructure;
 namespace MonitoCalibratrice.Application.Features.FinishedProductPallets.Commands
 {
     public record CreateFinishedProductPalletCommand(
-         Guid RawProductId,
-         Guid VarietyId,
-         string Caliber,
-         Guid FinishedProductId,
-         Guid SecondaryPackagingId,
-         int Units,
-         decimal Weight,
-         string Annotation
+        Guid RawProductId,
+        Guid VarietyId,
+        string Caliber,
+        Guid FinishedProductId,
+        Guid SecondaryPackagingId,
+        int Units,
+        decimal Weight,
+        string Annotation,
+        DateTime? CreatedAt = null,
+         Guid? ProductionBatchId = null
     ) : IRequest<Result<FinishedProductPalletDto>>;
 
     public class CreateFinishedProductPalletCommandHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<CreateFinishedProductPalletCommand, Result<FinishedProductPalletDto>>
@@ -31,9 +33,29 @@ namespace MonitoCalibratrice.Application.Features.FinishedProductPallets.Command
             var entity = _mapper.Map<FinishedProductPallet>(request);
 
             entity.PalletCode = await GeneratePalletCode(context, cancellationToken);
-            entity.CreatedAt = DateTime.Now;
+            entity.CreatedAt = request.CreatedAt ?? DateTime.Now;
 
-            await context.FinishedProductPallets.AddAsync(entity, cancellationToken);
+            if (request.ProductionBatchId.HasValue)
+            {
+                var batch = await context.ProductionBatches
+                    .Include(pb => pb.Pallets)
+                    .FirstOrDefaultAsync(pb => pb.Id == request.ProductionBatchId.Value, cancellationToken);
+                if (batch == null)
+                {
+                    return Result<FinishedProductPalletDto>.Failure(
+                        new AppError(ErrorCode.NotFound, "ProductionBatch not found.", $"Id: {request.ProductionBatchId}")
+                    );
+                }
+                // Associa la pedana al batch
+                entity.ProductionBatchId = batch.Id;
+                batch.Pallets.Add(entity);
+            }
+            else
+            {
+                // Se non viene fornito, aggiungi la pedana come entità indipendente
+                await context.FinishedProductPallets.AddAsync(entity, cancellationToken);
+            }
+
             await context.SaveChangesAsync(cancellationToken);
 
             var dto = _mapper.Map<FinishedProductPalletDto>(entity);

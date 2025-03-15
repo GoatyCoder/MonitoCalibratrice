@@ -1,0 +1,41 @@
+﻿@typeparam TItem
+
+<div class="row mb-3">
+    <div class="col-6">
+        <label for="@Id" class="form-label">@Label</label>
+        <input type="text" id="@Id" class="form-control" @bind="Value" @bind:event="oninput" @onkeydown="HandleKeyDown" />
+    </div>
+    <div class="col-2 d-flex align-items-end">
+        <button type="button" class="btn btn-secondary mt-2" @onclick="OpenSearch">
+            <i class="bi bi-search"></i>
+        </button>
+    </div>
+    <div class="col-4">
+        <label class="form-label">@Label Selezionato</label>
+        <input type="text" class="form-control" value="@SelectedItemName" disabled />
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; }
+    [Parameter] public string Id { get; set; }
+    [Parameter] public string Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string SelectedItemName { get; set; }
+    [Parameter] public Func<string, Task> OnSearch { get; set; }
+    [Parameter] public Func<TItem, Task> OnSelect { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnSearch(Value);
+        }
+    }
+
+    private void OpenSearch()
+    {
+        // Implementa la logica per aprire la modale di ricerca
+    }
+}

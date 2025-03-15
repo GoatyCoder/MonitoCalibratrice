@@ -1,0 +1,133 @@
+﻿@page "/dashboard"
+@inject IMediator Mediator
+@inject IMapper Mapper
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h3 class="mb-4">Dashboard - Gestione Lavorazioni</h3>
+
+@if (!string.IsNullOrEmpty(NotificationMessage))
+{
+    <div class="alert @NotificationCssClass" role="alert">
+        @NotificationMessage
+    </div>
+}
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="OpenCreateBatchDialog">Inizia Nuova Lavorazione</button>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="thead-light">
+        <tr>
+            <th>Raw Product</th>
+            <th>Variety</th>
+            <th>Calibro</th>
+            <th>Finished Product</th>
+            <th>Secondary Packaging</th>
+            <th>Inizio</th>
+            <th>Fine</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var batch in ProductionBatches)
+        {
+            <tr>
+                <td>@batch.RawProductName</td>
+                <td>@batch.VarietyName</td>
+                <td>@batch.Caliber</td>
+                <td>@batch.FinishedProductName</td>
+                <td>@batch.SecondaryPackagingName</td>
+                <td>@batch.StartedAt.ToString("g")</td>
+                <td>@(batch.FinishedAt.HasValue ? batch.FinishedAt.Value.ToString("g") : "-")</td>
+                <td>
+                    @if (!batch.IsCompleted)
+                    {
+                        <button class="btn btn-sm btn-success mr-1" @onclick="() => ConcludeBatch(batch.Id)">Concludi</button>
+                    }
+                    <button class="btn btn-sm btn-secondary mr-1" @onclick="() => OpenUpdateBatchDialog(batch)">Modifica</button>
+                    <button class="btn btn-sm btn-info mr-1" @onclick="() => OpenCreatePalletDialog(batch.Id)">Crea Pedana</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteBatch(batch.Id)">Elimina</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<ProductionBatchModel> ProductionBatches = new();
+    private string NotificationMessage = string.Empty;
+    private string NotificationCssClass = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductionBatches();
+    }
+
+    private async Task LoadProductionBatches()
+    {
+        var result = await Mediator.Send(new GetAllProductionBatchesQuery());
+        if (result.IsSuccess)
+        {
+            // Assumiamo che il mapping da DTO a ViewModel includa anche i nomi correlati
+            ProductionBatches = result.Value.Select(dto => Mapper.Map<ProductionBatchModel>(dto)).ToList();
+        }
+        else
+        {
+            ShowNotification("Errore nel caricamento delle lavorazioni", "alert-danger");
+        }
+    }
+
+    private async Task ConcludeBatch(Guid batchId)
+    {
+        var result = await Mediator.Send(new ConcludeProductionBatchCommand(batchId));
+        if (result.IsSuccess)
+        {
+            ShowNotification("Lavorazione conclusa", "alert-success");
+            await LoadProductionBatches();
+        }
+        else
+        {
+            ShowNotification("Errore nella conclusione della lavorazione", "alert-danger");
+        }
+    }
+
+    private void OpenCreateBatchDialog()
+    {
+        // In assenza di un framework di dialog, possiamo navigare a una pagina dedicata per creare una nuova lavorazione
+        NavigationManager.NavigateTo("/productionbatch-create");
+    }
+
+    private void OpenUpdateBatchDialog(ProductionBatchModel batch)
+    {
+        // Naviga a una pagina di modifica precompilata
+        NavigationManager.NavigateTo($"/productionbatch-edit/{batch.Id}");
+    }
+
+    private void OpenCreatePalletDialog(Guid batchId)
+    {
+        // Naviga a una pagina dedicata per creare una pedana per la lavorazione selezionata
+        NavigationManager.NavigateTo($"/productionbatch/{batchId}/create-pallet");
+    }
+
+    private async Task DeleteBatch(Guid batchId)
+    {
+        var result = await Mediator.Send(new DeleteProductionBatchCommand(batchId));
+        if (result.IsSuccess)
+        {
+            ShowNotification("Lavorazione eliminata", "alert-success");
+            await LoadProductionBatches();
+        }
+        else
+        {
+            ShowNotification("Errore nell'eliminazione della lavorazione", "alert-danger");
+        }
+    }
+
+    private void ShowNotification(string message, string cssClass)
+    {
+        NotificationMessage = message;
+        NotificationCssClass = cssClass;
+    }
+}

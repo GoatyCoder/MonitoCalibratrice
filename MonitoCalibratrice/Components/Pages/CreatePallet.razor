@@ -1,0 +1,491 @@
+﻿@page "/create-pallet"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using MonitoCalibratrice.Application.Common
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.Commands
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.DTOs
+@inject IMediator Mediator
+@inject ILogger<CreatePallet> Logger
+@rendermode InteractiveServer
+
+<h3>Crea Nuova Pedana</h3>
+
+<EditForm FormName="palletFrm" Model="@palletModel">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <!-- Data Creazione -->
+    <div class="mb-3">
+        <label for="createdAt" class="form-label">Data e Ora di Creazione</label>
+        <input type="datetime-local" id="createdAt" class="form-control"
+            @ref="createdAtField"
+            @bind="palletModel.CreatedAt" />
+    </div>
+
+    <!-- Prodotto Grezzo -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="rawProductCode" class="form-label">Cod. Prodotto Grezzo</label>
+            <input type="text" id="rawProductCode" class="form-control"
+                @bind="palletModel.RawProductCode" @bind:event="oninput"
+                @onkeydown="@(e => OnRawProductKeyDown(e))"
+                @ref="rawProductCodeField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenRawProductSearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <input type="text" class="form-control" value="@selectedRawProductName" disabled />
+        </div>
+    </div>
+
+    <!-- Varietà -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="varietyCode" class="form-label">Cod. Varietà</label>
+            <input type="text" id="varietyCode" class="form-control"
+                @bind="palletModel.VarietyCode" @bind:event="oninput"
+                @onkeydown="@(e => OnVarietyKeyDown(e))"
+                @ref="varietyCodeField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenVarietySearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <input type="text" class="form-control" value="@selectedVarietyName" disabled />
+        </div>
+    </div>
+
+    <!-- Calibro -->
+    <div class="mb-3">
+        <label for="caliber" class="form-label">Calibro</label>
+        <input type="text" id="caliber" class="form-control"
+            @bind="palletModel.Caliber" @bind:event="oninput"
+            @onkeydown="@(e => OnCaliberKeyDown(e))"
+            @ref="caliberField" />
+    </div>
+
+    <!-- Prodotto Finito -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="finishedProductCode" class="form-label">Cod. Prodotto Finito</label>
+            <input type="text" id="finishedProductCode" class="form-control"
+                @bind="palletModel.FinishedProductCode" @bind:event="oninput"
+                @onkeydown="@(e => OnFinishedProductKeyDown(e))"
+                @ref="finishedProductField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenFinishedProductSearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <input type="text" class="form-control" value="@selectedFinishedProductName" disabled />
+        </div>
+    </div>
+
+    <!-- Packaging Secondario -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="secondaryPackagingCode" class="form-label">Cod. Packaging Secondario</label>
+            <input type="text" id="secondaryPackagingCode" class="form-control"
+                @bind="palletModel.SecondaryPackagingCode" @bind:event="oninput"
+                @onkeydown="@(e => OnPackagingKeyDown(e))"
+                @ref="packagingField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenSecondaryPackagingSearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <input type="text" class="form-control" value="@selectedPackagingName" disabled />
+        </div>
+    </div>
+
+    <!-- Numero di Unità e Peso -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="units" class="form-label">Numero di Unità</label>
+            <input type="number" id="units" class="form-control"
+                @bind="palletModel.Units"
+                @onkeydown="@(e => OnUnitsKeyDown(e))"
+                @ref="unitsField" />
+        </div>
+        <div class="col-6">
+            <label for="weight" class="form-label">Peso (kg)</label>
+            <input type="number" id="weight" class="form-control"
+                @bind="palletModel.Weight"
+                @onkeydown="@(e => OnWeightKeyDown(e))"
+                @ref="weightField" />
+        </div>
+    </div>
+
+    <!-- Annotazioni -->
+    <div class="mb-3">
+        <label for="annotation" class="form-label">Annotazioni</label>
+        <textarea id="annotation" class="form-control"
+            @bind="palletModel.Annotation"
+            @onkeydown="@(e => OnAnnotationKeyDown(e))"
+            @ref="annotationField" />
+    </div>
+
+    <button type="button" class="btn btn-primary mt-3" @onclick="HandleCreatePallet">Crea Pedana</button>
+</EditForm>
+
+@if (showSearchModal)
+{
+    <SearchModal TItem="SearchEntityDto"
+                 Show="showSearchModal"
+                 Title="@searchModalTitle"
+                 Items="@searchResults"
+                 PerformSearch="PerformSearch"
+                 OnSelectItem="SelectSearchItem"
+                 OnClose="CloseSearchModal" />
+}
+
+@if (!string.IsNullOrEmpty(submissionMessage))
+{
+    <div class="alert alert-info mt-3">@submissionMessage</div>
+}
+
+@code {
+    private PalletModel palletModel = new PalletModel();
+    private string submissionMessage = string.Empty;
+
+    private bool showSearchModal;
+    private string searchModalTitle = string.Empty;
+    private List<SearchEntityDto> searchResults = new();
+    private string currentSearchTarget = string.Empty;
+
+    private Guid selectedRawProductId = Guid.Empty;
+    private string selectedRawProductName = string.Empty;
+
+    private Guid selectedVarietyId = Guid.Empty;
+    private string selectedVarietyName = string.Empty;
+
+    private Guid selectedFinishedProductId = Guid.Empty;
+    private string selectedFinishedProductName = string.Empty;
+
+    private Guid selectedPackagingId = Guid.Empty;
+    private string selectedPackagingName = string.Empty;
+
+    // ElementReference per il focus
+    private ElementReference createdAtField;
+    private ElementReference rawProductCodeField;
+    private ElementReference varietyCodeField;
+    private ElementReference caliberField;
+    private ElementReference finishedProductField;
+    private ElementReference packagingField;
+    private ElementReference unitsField;
+    private ElementReference weightField;
+    private ElementReference annotationField;
+
+    // Gestione del focus: RawProduct
+    private async Task OnRawProductKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            var result = await Mediator.Send(new GetRawProductByCodeQuery(palletModel.RawProductCode));
+            if (result.IsSuccess)
+            {
+                selectedRawProductId = result.Value.Id;
+                selectedRawProductName = result.Value.Name;
+                // Passa al campo Variety
+                await varietyCodeField.FocusAsync();
+            }
+            else
+            {
+                selectedRawProductId = Guid.Empty;
+                selectedRawProductName = "(Prodotto grezzo non trovato)";
+            }
+        }
+    }
+
+    // Gestione del focus: Variety
+    private async Task OnVarietyKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            if (selectedRawProductId == Guid.Empty)
+            {
+                selectedVarietyName = "(Selezionare prima il prodotto grezzo)";
+                await rawProductCodeField.FocusAsync();
+                return;
+            }
+
+            var result = await Mediator.Send(new GetVarietyByCodeQuery(palletModel.VarietyCode, selectedRawProductId));
+            if (result.IsSuccess)
+            {
+                selectedVarietyId = result.Value.Id;
+                selectedVarietyName = result.Value.Name;
+                // Passa al campo Calibro
+                await caliberField.FocusAsync();
+            }
+            else
+            {
+                selectedVarietyId = Guid.Empty;
+                selectedVarietyName = "(Varietà non trovata)";
+            }
+        }
+    }
+
+    // Gestione del focus: Calibro
+    private async Task OnCaliberKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Calibro è un campo libero: passa al campo Prodotto Finito
+            await finishedProductField.FocusAsync();
+        }
+    }
+
+    // Gestione del focus: Prodotto Finito
+    private async Task OnFinishedProductKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            var result = await Mediator.Send(new GetFinishedProductByCodeQuery(palletModel.FinishedProductCode));
+            if (result.IsSuccess)
+            {
+                selectedFinishedProductId = result.Value.Id;
+                selectedFinishedProductName = result.Value.Name;
+                // Passa al campo Packaging
+                await packagingField.FocusAsync();
+            }
+            else
+            {
+                selectedFinishedProductId = Guid.Empty;
+                selectedFinishedProductName = "(Prodotto finito non trovato)";
+                await finishedProductField.FocusAsync();
+            }
+        }
+    }
+
+    // Gestione del focus: Packaging
+    private async Task OnPackagingKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            var result = await Mediator.Send(new GetSecondaryPackagingByCodeQuery(palletModel.SecondaryPackagingCode));
+            if (result.IsSuccess)
+            {
+                selectedPackagingId = result.Value.Id;
+                selectedPackagingName = result.Value.Name;
+                // Passa al campo Unità
+                await unitsField.FocusAsync();
+            }
+            else
+            {
+                selectedPackagingId = Guid.Empty;
+                selectedPackagingName = "(Packaging non trovato)";
+                await packagingField.FocusAsync();
+            }
+        }
+    }
+
+    // Gestione del focus: Unità
+    private async Task OnUnitsKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Passa al campo Peso
+            await weightField.FocusAsync();
+        }
+    }
+
+    // Gestione del focus: Peso
+    private async Task OnWeightKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Passa al campo Annotazioni
+            await annotationField.FocusAsync();
+        }
+    }
+
+    // Gestione del focus: Annotazioni
+    private async Task OnAnnotationKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Ultimo campo: non sposta il focus
+        }
+    }
+
+
+    private async Task HandleCreatePallet()
+    {
+        try
+        {
+            var command = new CreateFinishedProductPalletCommand
+            (
+                selectedRawProductId,
+                selectedVarietyId,
+                palletModel.Caliber,
+                selectedFinishedProductId,
+                selectedPackagingId,
+                palletModel.Units,
+                palletModel.Weight,
+                palletModel.Annotation,
+                palletModel.CreatedAt
+            );
+
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                submissionMessage = $"Pedana '{result.Value.PalletCode}' creata con successo.";
+            }
+            else
+            {
+                submissionMessage = $"Errore: {string.Join(", ", result.Errors.Select(e => e.Message))}";
+            }
+        }
+        catch (Exception ex)
+        {
+            submissionMessage = $"Errore durante la creazione della pedana: {ex.Message}";
+        }
+    }
+
+    private void OpenRawProductSearch()
+    {
+        currentSearchTarget = "rawproduct";
+        searchModalTitle = "Ricerca Prodotto Grezzo";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private void OpenVarietySearch()
+    {
+        if (selectedRawProductId == Guid.Empty)
+        {
+            selectedVarietyName = "(Selezionare prima il prodotto grezzo)";
+            return;
+        }
+        currentSearchTarget = "variety";
+        searchModalTitle = "Ricerca Varietà (per il prodotto grezzo selezionato)";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private void OpenFinishedProductSearch()
+    {
+        currentSearchTarget = "finishedproduct";
+        searchModalTitle = "Ricerca Prodotto Finito";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private void OpenSecondaryPackagingSearch()
+    {
+        currentSearchTarget = "packaging";
+        searchModalTitle = "Ricerca Packaging Secondario";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private async Task PerformSearch(string filterText)
+    {
+        try
+        {
+            switch (currentSearchTarget)
+            {
+                case "rawproduct":
+                    var rawRes = await Mediator.Send(new SearchRawProductsQuery(filterText));
+                    if (rawRes.IsSuccess)
+                        searchResults = rawRes.Value.Select(r => new SearchEntityDto(r.Id, r.Code, r.Name)).ToList();
+                    break;
+
+                case "variety":
+                    var varRes = await Mediator.Send(new SearchVarietiesQuery(filterText, selectedRawProductId));
+                    if (varRes.IsSuccess)
+                        searchResults = varRes.Value.Select(v => new SearchEntityDto(v.Id, v.Code, v.Name)).ToList();
+                    break;
+
+                case "finishedproduct":
+                    var fpRes = await Mediator.Send(new SearchFinishedProductsQuery(filterText));
+                    if (fpRes.IsSuccess)
+                        searchResults = fpRes.Value.Select(fp => new SearchEntityDto(fp.Id, fp.Code, fp.Name)).ToList();
+                    break;
+
+                case "packaging":
+                    var spRes = await Mediator.Send(new SearchSecondaryPackagingsQuery(filterText));
+                    if (spRes.IsSuccess)
+                        searchResults = spRes.Value.Select(sp => new SearchEntityDto(sp.Id, sp.Code, sp.Name)).ToList();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            submissionMessage = $"Errore durante la ricerca: {ex.Message}";
+        }
+    }
+
+    private async Task SelectSearchItem(SearchEntityDto item)
+    {
+        switch (currentSearchTarget)
+        {
+            case "rawproduct":
+                palletModel.RawProductCode = item.Code;
+                selectedRawProductId = item.Id;
+                selectedRawProductName = item.Name;
+                break;
+            case "variety":
+                palletModel.VarietyCode = item.Code;
+                selectedVarietyId = item.Id;
+                selectedVarietyName = item.Name;
+                break;
+            case "finishedproduct":
+                palletModel.FinishedProductCode = item.Code;
+                selectedFinishedProductId = item.Id;
+                selectedFinishedProductName = item.Name;
+                break;
+            case "packaging":
+                palletModel.SecondaryPackagingCode = item.Code;
+                selectedPackagingId = item.Id;
+                selectedPackagingName = item.Name;
+                break;
+        }
+        showSearchModal = false;
+    }
+
+    private async Task CloseSearchModal()
+    {
+        showSearchModal = false;
+    }
+
+    private class PalletModel
+    {
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [Required(ErrorMessage = "Inserisci il codice del prodotto grezzo")]
+        public string RawProductCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice della varietà")]
+        public string VarietyCode { get; set; } = string.Empty;
+
+        public string Caliber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice del prodotto finito")]
+        public string FinishedProductCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice del packaging secondario")]
+        public string SecondaryPackagingCode { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue, ErrorMessage = "Il numero di unità deve essere maggiore di 0")]
+        public int Units { get; set; }
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "Il peso deve essere maggiore di 0")]
+        public decimal Weight { get; set; }
+
+        public string Annotation { get; set; } = string.Empty;
+    }
+
+    public record SearchEntityDto(Guid Id, string Code, string Name);
+}

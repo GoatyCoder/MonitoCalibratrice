@@ -1,0 +1,157 @@
+﻿@page "/finishedproducts"
+@inject IMediator Mediator
+@inject IMapper Mapper
+@rendermode InteractiveServer
+
+<h3>Gestione Finished Products</h3>
+
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="alert @notificationCssClass" role="alert">
+        @notificationMessage
+    </div>
+}
+
+<EditForm Model="@finishedProductViewModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Code</label>
+        <InputText class="form-control" @bind-Value="finishedProductViewModel.Code" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="finishedProductViewModel.Name" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <InputTextArea class="form-control" @bind-Value="finishedProductViewModel.Description" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">EAN</label>
+        <InputText class="form-control" @bind-Value="finishedProductViewModel.Ean" />
+    </div>
+    <button type="submit" class="btn btn-primary">
+        @(isEditing ? "Aggiorna" : "Aggiungi")
+    </button>
+    @if (isEditing)
+    {
+        <button type="button" class="btn btn-secondary ms-2" @onclick="CancelEdit">Annulla</button>
+    }
+</EditForm>
+
+<hr />
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>EAN</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var product in finishedProducts)
+        {
+            <tr>
+                <td>@product.Code</td>
+                <td>@product.Name</td>
+                <td>@product.Description</td>
+                <td>@product.Ean</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" @onclick="() => EditFinishedProduct(product)">Modifica</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteFinishedProduct(product.Id)">Elimina</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private FinishedProductModel finishedProductViewModel = new FinishedProductModel();
+    private List<FinishedProductDto> finishedProducts = new List<FinishedProductDto>();
+    private bool isEditing = false;
+    private string notificationMessage = string.Empty;
+    private string notificationCssClass = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFinishedProducts();
+    }
+
+    private async Task LoadFinishedProducts()
+    {
+        var result = await Mediator.Send(new GetAllFinishedProductsQuery());
+        if (result.IsSuccess)
+            finishedProducts = result.Value.ToList();
+        else
+            ShowNotification("Errore nel caricamento dei Finished Products", "alert-danger");
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isEditing)
+        {
+            var updateCommand = new UpdateFinishedProductCommand(
+                finishedProductViewModel.Id,
+                finishedProductViewModel.Code,
+                finishedProductViewModel.Name,
+                finishedProductViewModel.Description,
+                finishedProductViewModel.Ean
+            );
+            var result = await Mediator.Send(updateCommand);
+            if (result.IsSuccess)
+                ShowNotification("Finished Product aggiornato con successo", "alert-success");
+            else
+                ShowNotification("Errore aggiornamento: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        else
+        {
+            var createCommand = new CreateFinishedProductCommand(
+                finishedProductViewModel.Code,
+                finishedProductViewModel.Name,
+                finishedProductViewModel.Description,
+                finishedProductViewModel.Ean
+            );
+            var result = await Mediator.Send(createCommand);
+            if (result.IsSuccess)
+                ShowNotification("Finished Product creato con successo", "alert-success");
+            else
+                ShowNotification("Errore creazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        await LoadFinishedProducts();
+        finishedProductViewModel = new FinishedProductModel();
+        isEditing = false;
+    }
+
+    private void EditFinishedProduct(FinishedProductDto dto)
+    {
+        finishedProductViewModel = Mapper.Map<FinishedProductModel>(dto);
+        isEditing = true;
+    }
+
+    private async Task DeleteFinishedProduct(Guid id)
+    {
+        var result = await Mediator.Send(new DeleteFinishedProductCommand(id));
+        if (result.IsSuccess)
+            ShowNotification("Finished Product eliminato", "alert-success");
+        else
+            ShowNotification("Errore eliminazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        await LoadFinishedProducts();
+    }
+
+    private void CancelEdit()
+    {
+        finishedProductViewModel = new FinishedProductModel();
+        isEditing = false;
+    }
+
+    private void ShowNotification(string message, string cssClass)
+    {
+        notificationMessage = message;
+        notificationCssClass = cssClass;
+    }
+}

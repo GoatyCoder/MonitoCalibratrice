@@ -8,8 +8,12 @@ using MonitoCalibratrice.Infrastructure;
 
 namespace MonitoCalibratrice.Application.Features.FinishedProducts.Commands
 {
-    public record CreateFinishedProductCommand(string Code, string Name, string Description, string? Ean)
-        : IRequest<Result<FinishedProductDto>>;
+    public record CreateFinishedProductCommand(
+        string Code,
+        string Name,
+        string? Description,
+        string? Ean
+    ) : IRequest<Result<FinishedProductDto>>;
 
     public class CreateFinishedProductCommandHandler(IDbContextFactory<ApplicationDbContext> contextFactory, IMapper mapper) : IRequestHandler<CreateFinishedProductCommand, Result<FinishedProductDto>>
     {
@@ -22,9 +26,10 @@ namespace MonitoCalibratrice.Application.Features.FinishedProducts.Commands
 
             if (await context.FinishedProducts.AnyAsync(fp => fp.Code == request.Code, cancellationToken))
             {
-                
+                return Result<FinishedProductDto>.Failure(
+                    new AppError(ErrorCode.DuplicateCode, $"FinishedProduct with code '{request.Code}' already exists.", $"Code: {request.Code}")
+                );
             }
-                //return Result<FinishedProductDto>.Failure("FinishedProduct Code must be unique.");
 
             var entity = _mapper.Map<FinishedProduct>(request);
 

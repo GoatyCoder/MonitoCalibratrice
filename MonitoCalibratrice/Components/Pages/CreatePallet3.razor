@@ -1,0 +1,398 @@
+﻿@page "/create-pallet3"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.Commands
+@inject IMediator Mediator
+@inject ILogger<CreatePallet> Logger
+@rendermode InteractiveServer
+
+<h3>Inserimento Nuova Pedana</h3>
+
+<EditForm FormName="palletForm" Model="@palletModel">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="createdAt" class="form-label">Data e Ora di Creazione</label>
+        <input type="datetime-local" id="createdAt" class="form-control"
+               @bind="palletModel.CreatedAt"
+               @onkeydown="@(e => OnFieldKeyDown(e, rawProductField))"
+               @ref="createdAtField" />
+    </div>
+
+    <!-- RawProduct -->
+    <div class="row     mb-3">
+        <div class="col-6">
+            <label for="rawProductCode" class="form-label">Codice Prodotto Grezzo</label>
+            <input type="text" id="rawProductCode" class="form-control"
+                   @bind="palletModel.RawProductCode"
+                   @onkeydown="@(e => OnFieldKeyDown(e, varietyField))"
+                   @ref="rawProductField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenRawProductSearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <label class="form-label">Prodotto Grezzo Selezionato</label>
+            <input type="text" class="form-control" value="@selectedRawProductName" disabled />
+        </div>
+    </div>
+
+    <!-- Variety -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="varietyCode" class="form-label">Codice Varietà</label>
+            <input type="text" id="varietyCode" class="form-control"
+                   @bind="palletModel.VarietyCode"
+                   @onkeydown="@(e => OnFieldKeyDown(e, caliberField))"
+                   @ref="varietyField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenVarietySearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <label class="form-label">Varietà Selezionata</label>
+            <input type="text" class="form-control" value="@selectedVarietyName" disabled />
+        </div>
+    </div>
+
+    <!-- Calibro -->
+    <div class="mb-3">
+        <label for="caliber" class="form-label">Calibro</label>
+        <input type="text" id="caliber" class="form-control"
+                @bind="palletModel.Caliber"
+                @onkeydown="@(e => OnFieldKeyDown(e, finishedProductField))"
+                @ref="caliberField" />
+    </div>
+
+    <!-- FinishedProduct -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="finishedProductCode" class="form-label">Codice Prodotto Finito</label>
+            <input type="text" id="finishedProductCode" class="form-control"
+                   @bind="palletModel.FinishedProductCode"
+                   @onkeydown="@(e => OnFieldKeyDown(e, packagingField))"
+                   @ref="finishedProductField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenFinishedProductSearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <label class="form-label">Prodotto Finito Selezionato</label>
+            <input type="text" class="form-control" value="@selectedFinishedProductName" disabled />
+        </div>
+    </div>
+
+    <!-- Packaging Secondario -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="secondaryPackagingCode" class="form-label">Codice Packaging Secondario</label>
+            <input type="text" id="secondaryPackagingCode" class="form-control"
+                   @bind="palletModel.SecondaryPackagingCode"
+                   @ref="packagingField" />
+        </div>
+        <div class="col-2 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary mt-2" @onclick="OpenSecondaryPackagingSearch">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-4">
+            <label class="form-label">Packaging Selezionato</label>
+            <input type="text" class="form-control" value="@selectedPackagingName" disabled />
+        </div>
+    </div>
+
+    <!-- Numero di Unità e Peso -->
+    <div class="row mb-3">
+        <div class="col-6">
+            <label for="units" class="form-label">Numero di Unità</label>
+            <InputNumber id="units" class="form-control" @bind-Value="palletModel.Units" />
+        </div>
+        <div class="col-6">
+            <label for="weight" class="form-label">Peso (kg)</label>
+            <InputNumber id="weight" class="form-control" @bind-Value="palletModel.Weight" />
+        </div>
+    </div>
+
+    <!-- Annotazioni -->
+    <div class="mb-3">
+        <label for="annotation" class="form-label">Annotazioni</label>
+        <InputTextArea id="annotation" class="form-control" @bind-Value="palletModel.Annotation" />
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Crea Pedana</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(submissionMessage))
+{
+    <div class="alert alert-info mt-3">@submissionMessage</div>
+}
+
+@if (showSearchModal)
+{
+    <SearchModal TItem="SearchEntityDto"
+                 Title="@searchModalTitle"
+                 Items="@searchResults"
+                 OnClose="CloseSearchModal"
+                 OnSelectItem="SelectSearchItem"
+                 OnSearch="PerformSearch" />
+}
+
+@code {
+    private PalletCreationModel palletModel = new();
+    private string submissionMessage = string.Empty;
+
+    private string selectedRawProductName = "";
+    private string selectedVarietyName = "";
+    private string selectedFinishedProductName = "";
+    private string selectedPackagingName = "";
+
+    private Guid selectedRawProductId = Guid.Empty;
+
+    private bool showSearchModal = false;
+    private string searchModalTitle = "";
+    private List<SearchEntityDto> searchResults = new();
+    private string currentSearchTarget = "";
+
+    // ElementReference per gestire il focus
+    private ElementReference createdAtField;
+    private ElementReference rawProductField;
+    private ElementReference varietyField;
+    private ElementReference caliberField;
+    private ElementReference finishedProductField;
+    private ElementReference packagingField;
+
+
+    private async Task OnFieldKeyDown(KeyboardEventArgs e, ElementReference nextField)
+    {
+        if (e.Key != "Enter")
+            return;
+
+        await nextField.FocusAsync();
+    }
+
+    private async Task LoadRawProduct()
+    {
+        var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.RawProducts.Queries.GetRawProductByCodeQuery(palletModel.RawProductCode));
+        if (res.IsSuccess)
+        {
+            selectedRawProductName = res.Value.Name;
+            selectedRawProductId = res.Value.Id;
+        }
+        else
+        {
+            selectedRawProductName = "(Prodotto non trovato)";
+            selectedRawProductId = Guid.Empty;
+        }
+    }
+
+    private async Task LoadVariety()
+    {
+        if (selectedRawProductId == Guid.Empty)
+        {
+            selectedVarietyName = "(Selezionare prima il prodotto grezzo)";
+            return;
+        }
+
+        var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.Varieties.Queries.GetVarietyByCodeQuery(palletModel.VarietyCode, selectedRawProductId));
+        if (res.IsSuccess)
+            selectedVarietyName = res.Value.Name;
+        else
+            selectedVarietyName = "(Varietà non trovata)";
+    }
+
+    private async Task LoadFinishedProduct()
+    {
+        var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.FinishedProducts.Queries.GetFinishedProductByCodeQuery(palletModel.FinishedProductCode));
+        if (res.IsSuccess)
+            selectedFinishedProductName = res.Value.Name;
+        else
+            selectedFinishedProductName = "(Prodotto finito non trovato)";
+    }
+
+    private async Task LoadPackaging()
+    {
+        var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries.GetSecondaryPackagingByCodeQuery(palletModel.SecondaryPackagingCode));
+        if (res.IsSuccess)
+            selectedPackagingName = res.Value.Name;
+        else
+            selectedPackagingName = "(Packaging non trovato)";
+    }
+
+    // Apertura delle modali di ricerca
+    private void OpenRawProductSearch()
+    {
+        currentSearchTarget = "rawproduct";
+        searchModalTitle = "Ricerca Prodotto Grezzo";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private void OpenVarietySearch()
+    {
+        if (selectedRawProductId == Guid.Empty)
+        {
+            selectedVarietyName = "(Selezionare prima il prodotto grezzo)";
+            return;
+        }
+        currentSearchTarget = "variety";
+        searchModalTitle = "Ricerca Varietà (per il prodotto grezzo selezionato)";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private void OpenFinishedProductSearch()
+    {
+        currentSearchTarget = "finishedproduct";
+        searchModalTitle = "Ricerca Prodotto Finito";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private void OpenSecondaryPackagingSearch()
+    {
+        currentSearchTarget = "packaging";
+        searchModalTitle = "Ricerca Packaging Secondario";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private async Task CloseSearchModal()
+    {
+        showSearchModal = false;
+    }
+
+    private async Task PerformSearch(string filterText)
+    {
+        try
+        {
+            switch (currentSearchTarget)
+            {
+                case "rawproduct":
+                    var rawRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.RawProducts.Queries.SearchRawProductsQuery(filterText));
+                    if (rawRes.IsSuccess)
+                        searchResults = rawRes.Value.Select(r => new SearchEntityDto(r.Id, r.Code, r.Name)).ToList();
+                    break;
+                case "variety":
+                    var varRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.Varieties.Queries.SearchVarietiesQuery(filterText, selectedRawProductId));
+                    if (varRes.IsSuccess)
+                        searchResults = varRes.Value.Select(v => new SearchEntityDto(v.Id, v.Code, v.Name)).ToList();
+                    break;
+                case "finishedproduct":
+                    var fpRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.FinishedProducts.Queries.SearchFinishedProductsQuery(filterText));
+                    if (fpRes.IsSuccess)
+                        searchResults = fpRes.Value.Select(fp => new SearchEntityDto(fp.Id, fp.Code, fp.Name)).ToList();
+                    break;
+                case "packaging":
+                    var spRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries.SearchSecondaryPackagingsQuery(filterText));
+                    if (spRes.IsSuccess)
+                        searchResults = spRes.Value.Select(sp => new SearchEntityDto(sp.Id, sp.Code, sp.Name)).ToList();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la ricerca per {Target}", currentSearchTarget);
+            submissionMessage = $"Errore durante la ricerca: {ex.Message}";
+        }
+    }
+
+    private async Task SelectSearchItem(SearchEntityDto item)
+    {
+        switch (currentSearchTarget)
+        {
+            case "rawproduct":
+                palletModel.RawProductCode = item.Code;
+                selectedRawProductName = item.Name;
+                selectedRawProductId = item.Id;
+                break;
+            case "variety":
+                palletModel.VarietyCode = item.Code;
+                selectedVarietyName = item.Name;
+                break;
+            case "finishedproduct":
+                palletModel.FinishedProductCode = item.Code;
+                selectedFinishedProductName = item.Name;
+                break;
+            case "packaging":
+                palletModel.SecondaryPackagingCode = item.Code;
+                selectedPackagingName = item.Name;
+                break;
+        }
+        showSearchModal = false;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (selectedRawProductId == Guid.Empty)
+            {
+                submissionMessage = "Errore: selezionare un prodotto grezzo valido.";
+                return;
+            }
+            var rawProductId = selectedRawProductId;
+            var varietyId = (await Mediator.Send(new MonitoCalibratrice.Application.Features.Varieties.Queries.GetVarietyByCodeQuery(palletModel.VarietyCode, rawProductId))).Value.Id;
+            var finishedProductId = (await Mediator.Send(new MonitoCalibratrice.Application.Features.FinishedProducts.Queries.GetFinishedProductByCodeQuery(palletModel.FinishedProductCode))).Value.Id;
+            var secondaryPackagingId = (await Mediator.Send(new MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries.GetSecondaryPackagingByCodeQuery(palletModel.SecondaryPackagingCode))).Value.Id;
+
+            var command = new CreateFinishedProductPalletCommand(
+                RawProductId: rawProductId,
+                VarietyId: varietyId,
+                Caliber: palletModel.Caliber,
+                FinishedProductId: finishedProductId,
+                SecondaryPackagingId: secondaryPackagingId,
+                Units: palletModel.Units,
+                Weight: palletModel.Weight,
+                Annotation: palletModel.Annotation,
+                CreatedAt: palletModel.CreatedAt
+            );
+
+            var result = await Mediator.Send(command);
+            submissionMessage = result.IsSuccess
+                ? $"Pedana '{result.Value.PalletCode}' creata con successo."
+                : $"Errore: {string.Join(", ", result.Errors.Select(e => e.Message))}";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la creazione della pedana");
+            submissionMessage = $"Errore durante la creazione della pedana: {ex.Message}";
+        }
+    }
+
+    public class PalletCreationModel
+    {
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [Required(ErrorMessage = "Inserisci il codice del prodotto grezzo")]
+        public string RawProductCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice della varietà")]
+        public string VarietyCode { get; set; } = string.Empty;
+
+        public string Caliber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice del prodotto finito")]
+        public string FinishedProductCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice del packaging secondario")]
+        public string SecondaryPackagingCode { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue, ErrorMessage = "Il numero di unità deve essere maggiore di 0")]
+        public int Units { get; set; } = 1;
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "Il peso deve essere maggiore di 0")]
+        public decimal Weight { get; set; }
+
+        public string Annotation { get; set; } = string.Empty;
+    }
+
+    public record SearchEntityDto(Guid Id, string Code, string Name);
+}

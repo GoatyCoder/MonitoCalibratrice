@@ -1,0 +1,248 @@
+﻿@page "/productionbatches"
+@inject IMediator Mediator
+@inject IMapper Mapper
+@rendermode InteractiveServer
+
+<h3>Gestione Lavorazioni in Corso</h3>
+
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="alert @notificationCssClass" role="alert">
+        @notificationMessage
+    </div>
+}
+
+<EditForm Model="@productionBatchViewModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <!-- Sezione per selezionare le entità correlate: Dropdown per RawProduct, Variety, FinishedProduct, SecondaryPackaging -->
+    <div class="mb-3">
+        <label class="form-label">Raw Product</label>
+        <InputSelect class="form-control" @bind-Value="productionBatchViewModel.RawProductId">
+            <option value="">-- Seleziona Raw Product --</option>
+            @foreach (var rp in rawProducts)
+            {
+                <option value="@rp.Id">@rp.Code - @rp.Name</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Variety</label>
+        <InputSelect class="form-control" @bind-Value="productionBatchViewModel.VarietyId">
+            <option value="">-- Seleziona Variety --</option>
+            @foreach (var v in varieties)
+            {
+                <option value="@v.Id">@v.Code - @v.Name</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Caliber</label>
+        <InputText class="form-control" @bind-Value="productionBatchViewModel.Caliber" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Finished Product</label>
+        <InputSelect class="form-control" @bind-Value="productionBatchViewModel.FinishedProductId">
+            <option value="">-- Seleziona Finished Product --</option>
+            @foreach (var fp in finishedProducts)
+            {
+                <option value="@fp.Id">@fp.Code - @fp.Name</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Secondary Packaging</label>
+        <InputSelect class="form-control" @bind-Value="productionBatchViewModel.SecondaryPackagingId">
+            <option value="">-- Seleziona Secondary Packaging --</option>
+            @foreach (var sp in secondaryPackagings)
+            {
+                <option value="@sp.Id">@sp.Code - @sp.Name</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Start Time</label>
+        <InputDate class="form-control" @bind-Value="productionBatchViewModel.StartedAt" />
+    </div>
+    <!-- EndTime non è impostato durante la creazione, viene definito al momento della conclusione -->
+    <button type="submit" class="btn btn-primary">
+        @(isEditing ? "Aggiorna Lavorazione" : "Crea Lavorazione")
+    </button>
+    @if (isEditing)
+    {
+        <button type="button" class="btn btn-secondary ms-2" @onclick="CancelEdit">Annulla</button>
+    }
+</EditForm>
+
+<hr />
+
+<h4>Lavorazioni in Corso</h4>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Raw Product</th>
+            <th>Variety</th>
+            <th>Caliber</th>
+            <th>Finished Product</th>
+            <th>Secondary Packaging</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var batch in productionBatches)
+        {
+            <tr>
+                <td>@batch.RawProductId</td>
+                <td>@batch.VarietyId</td>
+                <td>@batch.Caliber</td>
+                <td>@batch.FinishedProductId</td>
+                <td>@batch.SecondaryPackagingId</td>
+                <td>@batch.StartedAt.ToString("g")</td>
+                <td>@(batch.FinishedAt.HasValue ? batch.FinishedAt.Value.ToString("g") : "-")</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" @onclick="() => EditProductionBatch(batch)">Modifica</button>
+                    @if (!batch.FinishedAt.HasValue)
+                    {
+                        <button class="btn btn-sm btn-success" @onclick="() => ConcludeProductionBatch(batch.Id)">Concludi</button>
+                    }
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteProductionBatch(batch.Id)">Elimina</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private ProductionBatchModel productionBatchViewModel = new ProductionBatchModel();
+    private List<ProductionBatchDto> productionBatches = new();
+    private List<RawProductDto> rawProducts = new();
+    private List<VarietyDto> varieties = new();
+    private List<FinishedProductDto> finishedProducts = new();
+    private List<SecondaryPackagingDto> secondaryPackagings = new();
+    private bool isEditing = false;
+    private string notificationMessage = string.Empty;
+    private string notificationCssClass = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMasterData();
+        await LoadProductionBatches();
+    }
+
+    private async Task LoadMasterData()
+    {
+        // Carica RawProducts
+        var rawResult = await Mediator.Send(new MonitoCalibratrice.Application.Features.RawProducts.Queries.GetAllRawProductsQuery());
+        if (rawResult.IsSuccess)
+            rawProducts = rawResult.Value.ToList();
+
+        // Carica Varieties
+        var varietyResult = await Mediator.Send(new MonitoCalibratrice.Application.Features.Varieties.Queries.GetAllVarietiesQuery());
+        if (varietyResult.IsSuccess)
+            varieties = varietyResult.Value.ToList();
+
+        // Carica FinishedProducts
+        var finishedResult = await Mediator.Send(new MonitoCalibratrice.Application.Features.FinishedProducts.Queries.GetAllFinishedProductsQuery());
+        if (finishedResult.IsSuccess)
+            finishedProducts = finishedResult.Value.ToList();
+
+        // Carica SecondaryPackaging
+        var secondaryResult = await Mediator.Send(new MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries.GetAllSecondaryPackagingsQuery());
+        if (secondaryResult.IsSuccess)
+            secondaryPackagings = secondaryResult.Value.ToList();
+    }
+
+    private async Task LoadProductionBatches()
+    {
+        var result = await Mediator.Send(new MonitoCalibratrice.Application.Features.ProductionBatches.Queries.GetAllProductionBatchesQuery());
+        if (result.IsSuccess)
+            productionBatches = result.Value.ToList();
+        else
+            ShowNotification("Errore nel caricamento delle lavorazioni", "alert-danger");
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isEditing)
+        {
+            var updateCommand = new UpdateProductionBatchCommand(
+                productionBatchViewModel.Id,
+                productionBatchViewModel.ProductionLineId,
+                productionBatchViewModel.RawProductId,
+                productionBatchViewModel.VarietyId,
+                productionBatchViewModel.Caliber,
+                productionBatchViewModel.FinishedProductId,
+                productionBatchViewModel.SecondaryPackagingId,
+                productionBatchViewModel.StartedAt,
+                productionBatchViewModel.FinishedAt
+            );
+            var result = await Mediator.Send(updateCommand);
+            if (result.IsSuccess)
+                ShowNotification("Lavorazione aggiornata", "alert-success");
+            else
+                ShowNotification("Errore aggiornamento: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        else
+        {
+            var createCommand = new CreateProductionBatchCommand(
+                productionBatchViewModel.ProductionLineId,
+                productionBatchViewModel.RawProductId,
+                productionBatchViewModel.VarietyId,
+                productionBatchViewModel.Caliber,
+                productionBatchViewModel.FinishedProductId,
+                productionBatchViewModel.SecondaryPackagingId,
+                productionBatchViewModel.StartedAt
+            );
+            var result = await Mediator.Send(createCommand);
+            if (result.IsSuccess)
+                ShowNotification("Lavorazione creata", "alert-success");
+            else
+                ShowNotification("Errore creazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        }
+        await LoadProductionBatches();
+        productionBatchViewModel = new ProductionBatchModel();
+        isEditing = false;
+    }
+
+    private void EditProductionBatch(ProductionBatchDto dto)
+    {
+        // Mappiamo il DTO al ViewModel
+        productionBatchViewModel = Mapper.Map<ProductionBatchModel>(dto);
+        isEditing = true;
+    }
+
+    private async Task ConcludeProductionBatch(Guid id)
+    {
+        var result = await Mediator.Send(new MonitoCalibratrice.Application.Features.ProductionBatches.Commands.ConcludeProductionBatchCommand(id));
+        if (result.IsSuccess)
+            ShowNotification("Lavorazione conclusa", "alert-success");
+        else
+            ShowNotification("Errore nella conclusione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        await LoadProductionBatches();
+    }
+
+    private async Task DeleteProductionBatch(Guid id)
+    {
+        var result = await Mediator.Send(new MonitoCalibratrice.Application.Features.ProductionBatches.Commands.DeleteProductionBatchCommand(id));
+        if (result.IsSuccess)
+            ShowNotification("Lavorazione eliminata", "alert-success");
+        else
+            ShowNotification("Errore eliminazione: " + string.Join(", ", result.Errors.Select(e => e.Message)), "alert-danger");
+        await LoadProductionBatches();
+    }
+
+    private void CancelEdit()
+    {
+        productionBatchViewModel = new ProductionBatchModel();
+        isEditing = false;
+    }
+
+    private void ShowNotification(string message, string cssClass)
+    {
+        notificationMessage = message;
+        notificationCssClass = cssClass;
+    }
+}

@@ -1,0 +1,345 @@
+﻿@page "/production-dashboard"
+@using MonitoCalibratrice.Application.Features.ProductionBatches.DTOs
+@using MonitoCalibratrice.Application.Features.ProductionBatches.Queries
+@using MonitoCalibratrice.Application.Features.ProductionBatches.Commands
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.DTOs
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.Commands
+@inject IMediator Mediator
+@inject ILogger<ProductionDashboard> Logger
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h3>Dashboard Lavorazioni</h3>
+
+<!-- Filtro -->
+<div class="mb-3">
+    <input type="text" class="form-control" placeholder="Filtra per prodotto, varietà, linea..." @bind="filterText" @bind:event="oninput" />
+    <button class="btn btn-secondary mt-2" @onclick="ApplyFilter">Filtra</button>
+</div>
+
+@if (batches == null)
+{
+    <p>Caricamento in corso...</p>
+}
+else if (!batches.Any())
+{
+    <div class="alert alert-warning">Nessuna lavorazione attiva.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Inizio</th>
+                <th>Materia Prima</th>
+                <th>Varietà</th>
+                <th>Calibro</th>
+                <th>Prodotto Finito</th>
+                <th>Packaging</th>
+                <th>Linea</th>
+                <th>Quantità</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var batch in batches)
+            {
+                <tr style="cursor:pointer" @onclick="() => ToggleExpansion(batch.Id)">
+                    <td>@batch.StartedAt.ToString("g")</td>
+                    <td>@batch.RawProductName</td>
+                    <td>@batch.VarietyName</td>
+                    <td>@batch.Caliber</td>
+                    <td>@batch.FinishedProductName</td>
+                    <td>@batch.SecondaryPackagingName</td>
+                    <td>@batch.ProductionLineName</td>
+                    <td>@batch.TotalUnits</td>
+                    <td>@(batch.FinishedAt.HasValue ? "Terminata" : "In corso")</td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-1" @onclick:stopPropagation @onclick="(e) => EditBatch(batch, e)">Modifica</button>
+                        <button class="btn btn-sm btn-danger me-1" @onclick:stopPropagation @onclick="(e) => DeleteBatch(batch, e)">Elimina</button>
+                        @if (!batch.FinishedAt.HasValue)
+                        {
+                            <button class="btn btn-sm btn-warning me-1" @onclick:stopPropagation @onclick="(e) => ConcludeBatch(batch, e)">Termina</button>
+                        }
+                        <button class="btn btn-sm btn-success" @onclick="(e) => OpenAddPalletModal(batch, e)">Aggiungi Pedana</button>
+                    </td>
+                </tr>
+                @if (expandedBatchIds.Contains(batch.Id))
+                {
+                    <tr>
+                        <td colspan="10">
+                            <div class="card card-body">
+                                <h6>Elenco Pedane</h6>
+                                @if (batch.Pallets == null || !batch.Pallets.Any())
+                                {
+                                    <p>Nessuna pedana per questa lavorazione.</p>
+                                }
+                                else
+                                {
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Codice</th>
+                                                <th>Unità</th>
+                                                <th>Peso</th>
+                                                <th>Annotazioni</th>
+                                                <th>Data Creazione</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var pallet in batch.Pallets)
+                                            {
+                                                <tr>
+                                                    <td>@pallet.PalletCode</td>
+                                                    <td>@pallet.Units</td>
+                                                    <td>@pallet.Weight</td>
+                                                    <td>@pallet.Annotation</td>
+                                                    <td>@pallet.CreatedAt.ToString("g")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@if (!string.IsNullOrEmpty(submissionMessage))
+{
+    <div class="alert alert-info mt-3">@submissionMessage</div>
+}
+
+<!-- Modale per l'aggiunta della pedana -->
+@if (showAddPalletModal)
+{
+    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Aggiungi Pedana alla Lavorazione</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAddPalletModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@newPalletModel" OnValidSubmit="HandleAddPallet">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="mb-3">
+                            <label class="form-label">Numero di Unità</label>
+                            <InputNumber class="form-control" @bind-Value="newPalletModel.Units" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Peso (kg)</label>
+                            <InputNumber class="form-control" @bind-Value="newPalletModel.Weight" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Annotazioni</label>
+                            <InputTextArea class="form-control" @bind-Value="newPalletModel.Annotation"></InputTextArea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Salva Pedana</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProductionBatchDto>? batches;
+    private ProductionBatchDto? selectedBatch;
+    private string filterText = string.Empty;
+    private HashSet<Guid> expandedBatchIds = new HashSet<Guid>();
+
+    // Variabile per la modale per l'aggiunta della pedana
+    private bool showAddPalletModal = false;
+    private NewPalletModel newPalletModel = new NewPalletModel();
+
+    private string submissionMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBatches();
+    }
+
+    private async Task LoadBatches()
+    {
+        try
+        {
+            var result = await Mediator.Send(new GetAllProductionBatchesQuery());
+            if (result.IsSuccess)
+            {
+                batches = result.Value.ToList();
+            }
+            else
+            {
+                Logger.LogError("Errore nel caricamento delle lavorazioni: {Errors}", result.Errors);
+                batches = new List<ProductionBatchDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante OnInitializedAsync");
+        }
+    }
+
+    private void ToggleExpansion(Guid batchId)
+    {
+        if (expandedBatchIds.Contains(batchId))
+            expandedBatchIds.Remove(batchId);
+        else
+            expandedBatchIds.Add(batchId);
+    }
+
+    private void SelectBatch(ProductionBatchDto batch)
+    {
+        selectedBatch = batch;
+    }
+
+    private void EditBatch(ProductionBatchDto batch, MouseEventArgs e)
+    {
+        NavigationManager.NavigateTo($"/edit-production-batch?batchId={batch.Id}");
+    }
+
+    private async Task DeleteBatch(ProductionBatchDto batch, MouseEventArgs e)
+    {
+        var command = new DeleteProductionBatchCommand(batch.Id);
+        var result = await Mediator.Send(command);
+        if (result.IsSuccess)
+        {
+            submissionMessage = "Lavorazione eliminata.";
+            await LoadBatches();
+            if (selectedBatch?.Id == batch.Id)
+                selectedBatch = null;
+        }
+        else
+        {
+            submissionMessage = $"Errore: {string.Join(", ", result.Errors.Select(er => er.Message))}";
+        }
+    }
+
+    private async Task ConcludeBatch(ProductionBatchDto batch, MouseEventArgs e)
+    {
+        var command = new ConcludeProductionBatchCommand(batch.Id);
+        var result = await Mediator.Send(command);
+        if (result.IsSuccess)
+        {
+            submissionMessage = "Lavorazione terminata.";
+            await LoadBatches();
+        }
+        else
+        {
+            submissionMessage = $"Errore: {string.Join(", ", result.Errors.Select(er => er.Message))}";
+        }
+    }
+
+    private void AddPallet()
+    {
+        if (selectedBatch != null)
+        {
+            OpenAddPalletModal(selectedBatch, null);
+        }
+    }
+
+    private void OpenAddPalletModal(ProductionBatchDto batch, MouseEventArgs? e)
+    {
+        selectedBatch = batch;
+        newPalletModel.Units = 1;
+        newPalletModel.Weight = 0;
+        newPalletModel.Annotation = string.Empty;
+        showAddPalletModal = true;
+    }
+
+    private void CloseAddPalletModal()
+    {
+        showAddPalletModal = false;
+    }
+
+    private async Task HandleAddPallet()
+    {
+        try
+        {
+            // Utilizza il comando CreateFinishedProductPalletCommand con ProductionBatchId
+            var command = new CreateFinishedProductPalletCommand(
+                selectedBatch!.RawProductId,
+                selectedBatch.VarietyId,
+                selectedBatch.Caliber,
+                selectedBatch.FinishedProductId,
+                selectedBatch.SecondaryPackagingId,
+                newPalletModel.Units,
+                newPalletModel.Weight,
+                newPalletModel.Annotation,
+                DateTime.Now,
+                selectedBatch.Id
+            );
+
+            var result = await Mediator.Send(command);
+            if (result.IsSuccess)
+            {
+                submissionMessage = $"Pedana '{result.Value.PalletCode}' creata con successo.";
+                await LoadBatches();
+                CloseAddPalletModal();
+            }
+            else
+            {
+                submissionMessage = $"Errore: {string.Join(", ", result.Errors.Select(e => e.Message))}";
+            }
+        }
+        catch (Exception ex)
+        {
+            submissionMessage = $"Errore durante la creazione della pedana: {ex.Message}";
+        }
+    }
+
+    private void ConcludeSelectedBatch()
+    {
+        if (selectedBatch != null)
+        {
+            _ = ConcludeBatch(selectedBatch, new MouseEventArgs());
+        }
+    }
+
+    private void EditSelectedBatch()
+    {
+        if (selectedBatch != null)
+        {
+            NavigationManager.NavigateTo($"/edit-production-batch?batchId={selectedBatch.Id}");
+        }
+    }
+
+    private void DeleteSelectedBatch()
+    {
+        if (selectedBatch != null)
+        {
+            _ = DeleteBatch(selectedBatch, new MouseEventArgs());
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(filterText))
+        {
+            _ = LoadBatches();
+        }
+        else
+        {
+            batches = batches?.Where(b => b.RawProductName.Contains(filterText, StringComparison.OrdinalIgnoreCase)
+                                          || b.VarietyName.Contains(filterText, StringComparison.OrdinalIgnoreCase)
+                                          || b.ProductionLineName.Contains(filterText, StringComparison.OrdinalIgnoreCase))
+                                .ToList();
+        }
+    }
+
+    private class NewPalletModel
+    {
+        public int Units { get; set; } = 1;
+
+        public decimal Weight { get; set; }
+
+        public string Annotation { get; set; } = string.Empty;
+    }
+}

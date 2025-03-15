@@ -31,7 +31,6 @@ namespace MonitoCalibratrice.Application.Features.FinishedProducts.Queries
                     new AppError(ErrorCode.NotFound, "FinishedProduct not found.", $"Id: {request.Id}")
                 );
             }
-                //return Result<FinishedProductDto>.Failure("FinishedProduct not found.");
 
             return Result<FinishedProductDto>.Success(dto);
         }

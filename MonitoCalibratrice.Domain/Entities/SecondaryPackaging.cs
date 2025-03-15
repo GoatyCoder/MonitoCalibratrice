@@ -7,6 +7,6 @@ namespace MonitoCalibratrice.Domain.Entities
         public Guid Id { get; set; }
         public required string Code { get; set; } = null!;
         public required string Name { get; set; } = null!;
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
     }
 }

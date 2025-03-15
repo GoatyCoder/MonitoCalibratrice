@@ -1,11 +1,11 @@
 ﻿namespace MonitoCalibratrice.Domain.Entities
 {
-    /// <summary>
-    /// Rappresenta una lavorazione (processo produttivo) che può essere in corso o conclusa.
-    /// </summary>
     public class ProductionBatch
     {
         public Guid Id { get; set; }
+
+        public Guid ProductionLineId { get; set; }
+        public ProductionLine ProductionLine { get; set; } = default!;
 
         public Guid RawProductId { get; set; }
         public RawProduct RawProduct { get; set; } = default!;
@@ -21,11 +21,11 @@
         public Guid SecondaryPackagingId { get; set; }
         public SecondaryPackaging SecondaryPackaging { get; set; } = default!;
 
-        public DateTime StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
-
         public ICollection<FinishedProductPallet> Pallets { get; set; } = new List<FinishedProductPallet>();
 
-        public bool IsCompleted => EndTime.HasValue;
+        public DateTime StartedAt { get; set; }
+        public DateTime? FinishedAt { get; set; }       
+
+        public bool IsCompleted => FinishedAt.HasValue;
     }
 }

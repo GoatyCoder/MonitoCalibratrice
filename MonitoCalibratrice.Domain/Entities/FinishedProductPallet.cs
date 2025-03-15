@@ -21,7 +21,10 @@
         public Guid SecondaryPackagingId { get; set; }
         public SecondaryPackaging SecondaryPackaging { get; set; } = default!;
 
-        public string PalletCode { get; set; }  //todo required
+        public Guid? ProductionBatchId { get; set; }
+        public ProductionBatch? ProductionBatch { get; set; }
+
+        public string PalletCode { get; set; } = default!;
 
         public int Units { get; set; }
         public decimal Weight { get; set; }

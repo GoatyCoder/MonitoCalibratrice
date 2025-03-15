@@ -1,0 +1,547 @@
+﻿@page "/create-pallet4"
+@using System.ComponentModel.DataAnnotations
+@using Radzen
+@using Radzen.Blazor
+@using MonitoCalibratrice.Application.Features.FinishedProductPallets.Commands
+@inject IMediator Mediator
+@inject ILogger<CreatePallet> Logger
+@rendermode InteractiveServer
+
+<div>
+    <h3>Creazione Nuova Pedana</h3>
+
+    <EditForm FormName="palletFrm" Model="@palletModel" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        @if (showValidation)
+        {
+            <ValidationSummary />
+        }
+
+        <!-- Campo CreatedAt: Data e ora di creazione (modificabile) -->
+        <div class="mb-3">
+            <label class="form-label">Data e Ora di Creazione</label>
+            <RadzenDatePicker @bind-Value="palletModel.CreatedAt" ShowTime="true" DateFormat="yyyy-MM-dd HH:mm" Style="width:250px" />
+        </div>
+
+        <!-- RawProduct -->
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Codice Prodotto Grezzo</label>
+                <RadzenTextBox @bind-Value="palletModel.RawProductCode" @bind-Value:event="oninput"
+                               @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.RawProduct))"
+                               @ref="rawProductInput" Style="width:100%" Placeholder="Inserisci codice prodotto grezzo" />
+            </div>
+            <div class="col-2 d-flex align-items-end">
+                <RadzenButton Text="Cerca" Icon="search" ButtonStyle="ButtonStyle.Secondary"
+                              Click="OpenRawProductSearch" Style="margin-top:10px" />
+            </div>
+            <div class="col-4">
+                <label class="form-label">Prodotto Grezzo Selezionato</label>
+                <RadzenTextBox Value="@selectedRawProductName" ReadOnly="true" Style="width:100%" />
+            </div>
+        </div>
+
+        <!-- Variety -->
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Codice Varietà</label>
+                <RadzenTextBox @bind-Value="palletModel.VarietyCode" @bind-Value:event="oninput"
+                               @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.Variety))"
+                               @ref="varietyInput" Style="width:100%" Placeholder="Inserisci codice varietà" />
+            </div>
+            <div class="col-2 d-flex align-items-end">
+                <RadzenButton Text="Cerca" Icon="search" ButtonStyle="ButtonStyle.Secondary"
+                              Click="OpenVarietySearch" Style="margin-top:10px" />
+            </div>
+            <div class="col-4">
+                <label class="form-label">Varietà Selezionata</label>
+                <RadzenTextBox Value="@selectedVarietyName" ReadOnly="true" Style="width:100%" />
+            </div>
+        </div>
+
+        <!-- Calibro -->
+        <div class="mb-3">
+            <label class="form-label">Calibro</label>
+            <RadzenTextBox @bind-Value="palletModel.Caliber" @bind-Value:event="oninput"
+                           @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.Caliber))"
+                           @ref="caliberInput" Style="width:250px" Placeholder="Inserisci calibro" />
+        </div>
+
+        <!-- FinishedProduct -->
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Codice Prodotto Finito</label>
+                <RadzenTextBox @bind-Value="palletModel.FinishedProductCode" @bind-Value:event="oninput"
+                               @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.FinishedProduct))"
+                               @ref="finishedProductInput" Style="width:100%" Placeholder="Inserisci codice prodotto finito" />
+            </div>
+            <div class="col-2 d-flex align-items-end">
+                <RadzenButton Text="Cerca" Icon="search" ButtonStyle="ButtonStyle.Secondary"
+                              Click="OpenFinishedProductSearch" Style="margin-top:10px" />
+            </div>
+            <div class="col-4">
+                <label class="form-label">Prodotto Finito Selezionato</label>
+                <RadzenTextBox Value="@selectedFinishedProductName" ReadOnly="true" Style="width:100%" />
+            </div>
+        </div>
+
+        <!-- Packaging Secondario -->
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Codice Packaging Secondario</label>
+                <RadzenTextBox @bind-Value="palletModel.SecondaryPackagingCode" @bind-Value:event="oninput"
+                               @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.Packaging))"
+                               @ref="packagingInput" Style="width:100%" Placeholder="Inserisci codice packaging" />
+            </div>
+            <div class="col-2 d-flex align-items-end">
+                <RadzenButton Text="Cerca" Icon="search" ButtonStyle="ButtonStyle.Secondary"
+                              Click="OpenSecondaryPackagingSearch" Style="margin-top:10px" />
+            </div>
+            <div class="col-4">
+                <label class="form-label">Packaging Selezionato</label>
+                <RadzenTextBox Value="@selectedPackagingName" ReadOnly="true" Style="width:100%" />
+            </div>
+        </div>
+
+        <!-- Unità e Peso -->
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">Numero di Unità</label>
+                <RadzenNumeric @bind-Value="palletModel.Units" Min="1"
+                               @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.Units))"
+                               @ref="unitsInput" Style="width:100%" />
+            </div>
+            <div class="col-6">
+                <label class="form-label">Peso (kg)</label>
+                <RadzenNumeric @bind-Value="palletModel.Weight" Min="0.01m" Step="0.01m"
+                               @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.Weight))"
+                               @ref="weightInput" Style="width:100%" />
+            </div>
+        </div>
+
+        <!-- Annotazioni -->
+        <div class="mb-3">
+            <label class="form-label">Annotazioni</label>
+            <RadzenTextArea @bind-Value="palletModel.Annotation"
+                            @onkeydown="@(async e => await OnFieldKeyDown(e, FieldType.Annotation))"
+                            @ref="annotationInput" Style="width:400px; height:100px" />
+        </div>
+
+        <!-- Bottone di submit con shortcut (Ctrl+Enter) -->
+        <RadzenButton Text="Crea Pedana" ButtonStyle="ButtonStyle.Primary" Icon="save" Type="submit"
+                      @onkeydown="@(async e => await HandleSubmitShortcut(e))" Style="margin-top:10px" />
+    </EditForm>
+</div>
+
+@if (!string.IsNullOrEmpty(submissionMessage))
+{
+    <RadzenAlert Text="@submissionMessage" Severity="Severity.Info" Closeable="true" />
+}
+
+@if (showSearchModal)
+{
+    <SearchModal TItem="SearchEntityDto"
+                 Title="@searchModalTitle"
+                 Items="@searchResults"
+                 OnClose="CloseSearchModal"
+                 OnSelectItem="SelectSearchItem"
+                 OnSearch="PerformSearch" />
+}
+
+@code {
+    // Enum per identificare i campi
+    private enum FieldType
+    {
+        RawProduct,
+        Variety,
+        Caliber,
+        FinishedProduct,
+        Packaging,
+        Units,
+        Weight,
+        Annotation
+    }
+
+    private PalletCreationModel palletModel = new();
+    private bool showValidation = false;
+    private string submissionMessage = string.Empty;
+
+    private string selectedRawProductName = "";
+    private string selectedVarietyName = "";
+    private string selectedFinishedProductName = "";
+    private string selectedPackagingName = "";
+
+    private Guid selectedRawProductId = Guid.Empty;
+
+    private bool showSearchModal = false;
+    private string searchModalTitle = "";
+    private List<SearchEntityDto> searchResults = new();
+    private string currentSearchTarget = "";
+
+    // Riferimenti ai componenti Radzen per il focus
+    private RadzenTextBox rawProductInput;
+    private RadzenTextBox varietyInput;
+    private RadzenTextBox caliberInput;
+    private RadzenTextBox finishedProductInput;
+    private RadzenTextBox packagingInput;
+    private RadzenNumeric<int> unitsInput;
+    private RadzenNumeric<decimal> weightInput;
+    private RadzenTextArea annotationInput;
+
+    // Gestione globale dello shortcut per submit (Ctrl+Enter)
+    private async Task HandleSubmitShortcut(KeyboardEventArgs e)
+    {
+        if (e.CtrlKey && e.Key == "Enter")
+        {
+            showValidation = true;
+            await HandleValidSubmit();
+        }
+    }
+
+    // Gestione del tasto Enter per ciascun campo
+    private async Task OnFieldKeyDown(KeyboardEventArgs e, FieldType field)
+    {
+        if (e.Key != "Enter")
+            return;
+
+        try
+        {
+            bool valid = false;
+            switch (field)
+            {
+                case FieldType.RawProduct:
+                    valid = await LoadRawProduct();
+                    if (valid)
+                        await varietyInput.FocusAsync();
+                    else
+                        await rawProductInput.FocusAsync();
+                    break;
+                case FieldType.Variety:
+                    if (selectedRawProductId == Guid.Empty)
+                    {
+                        submissionMessage = "Selezionare prima il prodotto grezzo.";
+                        await rawProductInput.FocusAsync();
+                        return;
+                    }
+                    valid = await LoadVariety();
+                    if (valid)
+                        await caliberInput.FocusAsync();
+                    else
+                        await varietyInput.FocusAsync();
+                    break;
+                case FieldType.Caliber:
+                    await finishedProductInput.FocusAsync();
+                    break;
+                case FieldType.FinishedProduct:
+                    valid = await LoadFinishedProduct();
+                    if (valid)
+                        await packagingInput.FocusAsync();
+                    else
+                        await finishedProductInput.FocusAsync();
+                    break;
+                case FieldType.Packaging:
+                    valid = await LoadPackaging();
+                    if (valid)
+                        await unitsInput.FocusAsync();
+                    else
+                        await packagingInput.FocusAsync();
+                    break;
+                case FieldType.Units:
+                    await weightInput.FocusAsync();
+                    break;
+                case FieldType.Weight:
+                    await annotationInput.FocusAsync();
+                    break;
+                case FieldType.Annotation:
+                    // Ultimo campo: non spostare il focus
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione del campo {Field}", field);
+            submissionMessage = $"Errore nel campo {field}: {ex.Message}";
+        }
+    }
+
+    private async Task<bool> LoadRawProduct()
+    {
+        try
+        {
+            var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.RawProducts.Queries.GetRawProductByCodeQuery(palletModel.RawProductCode));
+            if (res.IsSuccess)
+            {
+                selectedRawProductName = res.Value.Name;
+                selectedRawProductId = res.Value.Id;
+                return true;
+            }
+            else
+            {
+                selectedRawProductName = "(Prodotto non trovato)";
+                selectedRawProductId = Guid.Empty;
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento del prodotto grezzo");
+            throw;
+        }
+    }
+
+    private async Task<bool> LoadVariety()
+    {
+        if (selectedRawProductId == Guid.Empty)
+        {
+            selectedVarietyName = "(Selezionare prima il prodotto grezzo)";
+            return false;
+        }
+        try
+        {
+            var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.Varieties.Queries.GetVarietyByCodeQuery(palletModel.VarietyCode, selectedRawProductId));
+            if (res.IsSuccess)
+            {
+                selectedVarietyName = res.Value.Name;
+                return true;
+            }
+            else
+            {
+                selectedVarietyName = "(Varietà non trovata)";
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento della varietà");
+            throw;
+        }
+    }
+
+    private async Task<bool> LoadFinishedProduct()
+    {
+        try
+        {
+            var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.FinishedProducts.Queries.GetFinishedProductByCodeQuery(palletModel.FinishedProductCode));
+            if (res.IsSuccess)
+            {
+                selectedFinishedProductName = res.Value.Name;
+                return true;
+            }
+            else
+            {
+                selectedFinishedProductName = "(Prodotto finito non trovato)";
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento del prodotto finito");
+            throw;
+        }
+    }
+
+    private async Task<bool> LoadPackaging()
+    {
+        try
+        {
+            var res = await Mediator.Send(new MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries.GetSecondaryPackagingByCodeQuery(palletModel.SecondaryPackagingCode));
+            if (res.IsSuccess)
+            {
+                selectedPackagingName = res.Value.Name;
+                return true;
+            }
+            else
+            {
+                selectedPackagingName = "(Packaging non trovato)";
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento del packaging");
+            throw;
+        }
+    }
+
+    // Apertura dei dialoghi di ricerca
+    private void OpenRawProductSearch()
+    {
+        currentSearchTarget = "rawproduct";
+        searchModalTitle = "Ricerca Prodotto Grezzo";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+    private void OpenVarietySearch()
+    {
+        if (selectedRawProductId == Guid.Empty)
+        {
+            submissionMessage = "Selezionare prima il prodotto grezzo.";
+            return;
+        }
+        currentSearchTarget = "variety";
+        searchModalTitle = "Ricerca Varietà (per il prodotto grezzo)";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+    private void OpenFinishedProductSearch()
+    {
+        currentSearchTarget = "finishedproduct";
+        searchModalTitle = "Ricerca Prodotto Finito";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+    private void OpenSecondaryPackagingSearch()
+    {
+        currentSearchTarget = "packaging";
+        searchModalTitle = "Ricerca Packaging Secondario";
+        showSearchModal = true;
+        searchResults.Clear();
+    }
+
+    private async Task CloseSearchModal()
+    {
+        showSearchModal = false;
+    }
+
+    private async Task PerformSearch(string filterText)
+    {
+        try
+        {
+            switch (currentSearchTarget)
+            {
+                case "rawproduct":
+                    var rawRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.RawProducts.Queries.SearchRawProductsQuery(filterText));
+                    if (rawRes.IsSuccess)
+                        searchResults = rawRes.Value.Select(r => new SearchEntityDto(r.Id, r.Code, r.Name)).ToList();
+                    break;
+                case "variety":
+                    var varRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.Varieties.Queries.SearchVarietiesQuery(filterText, selectedRawProductId));
+                    if (varRes.IsSuccess)
+                        searchResults = varRes.Value.Select(v => new SearchEntityDto(v.Id, v.Code, v.Name)).ToList();
+                    break;
+                case "finishedproduct":
+                    var fpRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.FinishedProducts.Queries.SearchFinishedProductsQuery(filterText));
+                    if (fpRes.IsSuccess)
+                        searchResults = fpRes.Value.Select(fp => new SearchEntityDto(fp.Id, fp.Code, fp.Name)).ToList();
+                    break;
+                case "packaging":
+                    var spRes = await Mediator.Send(new MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries.SearchSecondaryPackagingsQuery(filterText));
+                    if (spRes.IsSuccess)
+                        searchResults = spRes.Value.Select(sp => new SearchEntityDto(sp.Id, sp.Code, sp.Name)).ToList();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la ricerca per {Target}", currentSearchTarget);
+            submissionMessage = $"Errore durante la ricerca: {ex.Message}";
+        }
+    }
+
+    private async Task SelectSearchItem(SearchEntityDto item)
+    {
+        switch (currentSearchTarget)
+        {
+            case "rawproduct":
+                palletModel.RawProductCode = item.Code;
+                selectedRawProductName = item.Name;
+                selectedRawProductId = item.Id;
+                break;
+            case "variety":
+                palletModel.VarietyCode = item.Code;
+                selectedVarietyName = item.Name;
+                break;
+            case "finishedproduct":
+                palletModel.FinishedProductCode = item.Code;
+                selectedFinishedProductName = item.Name;
+                break;
+            case "packaging":
+                palletModel.SecondaryPackagingCode = item.Code;
+                selectedPackagingName = item.Name;
+                break;
+        }
+        showSearchModal = false;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (selectedRawProductId == Guid.Empty)
+            {
+                submissionMessage = "Errore: selezionare un prodotto grezzo valido.";
+                return;
+            }
+            var rawProductId = selectedRawProductId;
+            var varietyResult = await Mediator.Send(new MonitoCalibratrice.Application.Features.Varieties.Queries.GetVarietyByCodeQuery(palletModel.VarietyCode, rawProductId));
+            if (!varietyResult.IsSuccess)
+            {
+                submissionMessage = "Errore: varietà non trovata.";
+                return;
+            }
+            var finishedResult = await Mediator.Send(new MonitoCalibratrice.Application.Features.FinishedProducts.Queries.GetFinishedProductByCodeQuery(palletModel.FinishedProductCode));
+            if (!finishedResult.IsSuccess)
+            {
+                submissionMessage = "Errore: prodotto finito non trovato.";
+                return;
+            }
+            var packagingResult = await Mediator.Send(new MonitoCalibratrice.Application.Features.SecondaryPackagings.Queries.GetSecondaryPackagingByCodeQuery(palletModel.SecondaryPackagingCode));
+            if (!packagingResult.IsSuccess)
+            {
+                submissionMessage = "Errore: packaging secondario non trovato.";
+                return;
+            }
+
+            var command = new CreateFinishedProductPalletCommand(
+                rawProductId,
+                varietyResult.Value.Id,
+                palletModel.Caliber,
+                finishedResult.Value.Id,
+                packagingResult.Value.Id,
+                palletModel.Units,
+                palletModel.Weight,
+                palletModel.Annotation,
+                palletModel.CreatedAt
+            );
+
+            var result = await Mediator.Send(command);
+            submissionMessage = result.IsSuccess
+                ? $"Pedana '{result.Value.PalletCode}' creata con successo."
+                : $"Errore: {string.Join(", ", result.Errors.Select(e => e.Message))}";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la creazione della pedana");
+            submissionMessage = $"Errore durante la creazione della pedana: {ex.Message}";
+        }
+    }
+
+    public class PalletCreationModel
+    {
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [Required(ErrorMessage = "Inserisci il codice del prodotto grezzo")]
+        public string RawProductCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice della varietà")]
+        public string VarietyCode { get; set; } = string.Empty;
+
+        public string Caliber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice del prodotto finito")]
+        public string FinishedProductCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Inserisci il codice del packaging secondario")]
+        public string SecondaryPackagingCode { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue, ErrorMessage = "Il numero di unità deve essere maggiore di 0")]
+        public int Units { get; set; } = 1;
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "Il peso deve essere maggiore di 0")]
+        public decimal Weight { get; set; }
+
+        public string Annotation { get; set; } = string.Empty;
+    }
+
+    public record SearchEntityDto(Guid Id, string Code, string Name);
+}
